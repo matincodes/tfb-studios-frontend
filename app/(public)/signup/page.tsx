@@ -1,21 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { PublicLayout } from "@/components/public-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowRight, User, Mail, Lock } from "lucide-react"
+import { ArrowRight, User, Mail, Lock, Terminal, Loader2 } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import api from '@/lib/api'; // Import our pre-configured Axios instance
 
 export default function SignupPage() {
-  const router = useRouter()
+  
+  // --- STATE MANAGEMENT ---
+  // The 'formData' state is great. We'll add error and success states.
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,6 +28,7 @@ export default function SignupPage() {
     agreeTerms: false,
   })
 
+  // --- INPUT HANDLERS (No changes needed) ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -39,17 +44,61 @@ export default function SignupPage() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // --- SUBMIT HANDLER (Updated with real logic) ---
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    
+    // 1. Client-side validation
+    if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+    }
+    if (formData.password.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      router.push("/dashboard")
-    }, 1500)
+    setIsLoading(true)
+    setError(null);
+
+    // 2. API Call using Axios
+    try {
+        await api.post('/auth/signup', {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password
+        });
+        // On success, switch to the success view
+        setSuccess(true);
+    } catch (err: any) {
+        // Set error message from backend response
+        setError(err.response?.data?.message || 'An unknown error occurred during signup.');
+        console.error("Signup error:", err);
+    } finally {
+        setIsLoading(false);
+    }
   }
 
+  // --- SUCCESS VIEW ---
+  // If the API call was successful, show this message instead of the form.
+  if (success) {
+      return (
+          <PublicLayout>
+              <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+                  <Alert className="max-w-md">
+                      <Terminal className="h-4 w-4" />
+                      <AlertTitle>Registration Successful!</AlertTitle>
+                      <AlertDescription>
+                          We've sent a verification link to your email. Please check your inbox to activate your account before logging in.
+                      </AlertDescription>
+                  </Alert>
+              </div>
+          </PublicLayout>
+      );
+  }
+
+  // --- YOUR EXISTING JSX WITH DYNAMIC LOGIC ---
+  // The structure and styling are identical to your original file.
   return (
     <PublicLayout>
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
@@ -149,10 +198,14 @@ export default function SignupPage() {
                     </Link>
                   </label>
                 </div>
+                
+                {/* Error message will appear here if it exists */}
+                {error && <p className="text-sm text-red-500 pt-2">{error}</p>}
 
-                <Button type="submit" className="w-full" disabled={isLoading || !formData.agreeTerms}>
-                  {isLoading ? "Creating account..." : "Create Account"}
-                  {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                <Button type="submit" className="w-full flex items-center justify-center" disabled={isLoading || !formData.agreeTerms}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isLoading ? "Creating account..." : "Create Account"}
+                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                 </Button>
               </form>
             </CardContent>
