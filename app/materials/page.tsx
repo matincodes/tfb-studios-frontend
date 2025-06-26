@@ -2,76 +2,127 @@
 
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Upload, Search, Filter } from "lucide-react"
-import Link from "next/link"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Upload, Heart, Download, Eye } from "lucide-react"
+import Link from "next/link"
 
 export default function Materials() {
+  // Mock data for user materials
   const userMaterials = [
     {
       id: 1,
-      name: "Custom Denim",
+      name: "Custom Cotton Blend",
       type: "Cotton",
+      color: "Navy Blue",
       uploadDate: "2024-01-15",
+      status: "Approved",
       image: "/placeholder.svg?height=200&width=200",
     },
     {
       id: 2,
-      name: "Silk Blend",
-      type: "Silk",
+      name: "Organic Linen",
+      type: "Linen",
+      color: "Natural",
       uploadDate: "2024-01-10",
+      status: "Pending",
       image: "/placeholder.svg?height=200&width=200",
     },
     {
       id: 3,
-      name: "Wool Tweed",
-      type: "Wool",
-      uploadDate: "2024-01-05",
+      name: "Recycled Polyester",
+      type: "Polyester",
+      color: "Black",
+      uploadDate: "2024-01-08",
+      status: "Approved",
       image: "/placeholder.svg?height=200&width=200",
     },
   ]
 
+  // Mock data for admin materials
   const adminMaterials = [
     {
-      id: 4,
+      id: 1,
+      name: "Premium Wool",
+      type: "Wool",
+      color: "Charcoal",
+      price: "£15.99/m",
+      sustainability: "High",
+      image: "/placeholder.svg?height=200&width=200",
+    },
+    {
+      id: 2,
       name: "Organic Cotton",
       type: "Cotton",
-      category: "Sustainable",
+      color: "White",
+      price: "£12.99/m",
+      sustainability: "Very High",
+      image: "/placeholder.svg?height=200&width=200",
+    },
+    {
+      id: 3,
+      name: "Bamboo Fiber",
+      type: "Bamboo",
+      color: "Sage Green",
+      price: "£18.99/m",
+      sustainability: "Very High",
+      image: "/placeholder.svg?height=200&width=200",
+    },
+    {
+      id: 4,
+      name: "Hemp Canvas",
+      type: "Hemp",
+      color: "Natural",
+      price: "£14.99/m",
+      sustainability: "High",
       image: "/placeholder.svg?height=200&width=200",
     },
     {
       id: 5,
-      name: "Recycled Polyester",
-      type: "Synthetic",
-      category: "Eco-Friendly",
+      name: "Tencel Lyocell",
+      type: "Tencel",
+      color: "Light Blue",
+      price: "£16.99/m",
+      sustainability: "Very High",
       image: "/placeholder.svg?height=200&width=200",
     },
     {
       id: 6,
-      name: "Bamboo Fiber",
-      type: "Natural",
-      category: "Sustainable",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 7,
-      name: "Hemp Canvas",
-      type: "Natural",
-      category: "Durable",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    { id: 8, name: "Merino Wool", type: "Wool", category: "Premium", image: "/placeholder.svg?height=200&width=200" },
-    {
-      id: 9,
-      name: "Linen Blend",
-      type: "Natural",
-      category: "Breathable",
+      name: "Recycled Denim",
+      type: "Denim",
+      color: "Indigo",
+      price: "£13.99/m",
+      sustainability: "High",
       image: "/placeholder.svg?height=200&width=200",
     },
   ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Approved":
+        return "bg-green-500"
+      case "Pending":
+        return "bg-yellow-500"
+      case "Rejected":
+        return "bg-red-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
+  const getSustainabilityColor = (level: string) => {
+    switch (level) {
+      case "Very High":
+        return "bg-green-500"
+      case "High":
+        return "bg-blue-500"
+      case "Medium":
+        return "bg-yellow-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
 
   return (
     <Layout>
@@ -92,99 +143,108 @@ export default function Materials() {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <Input type="search" placeholder="Search materials..." className="pl-8 bg-gray-900 border-gray-700" />
-          </div>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-        </div>
-
+      <div className="flex-1 p-6">
         <Tabs defaultValue="my-materials" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="my-materials">My Materials ({userMaterials.length})</TabsTrigger>
-            <TabsTrigger value="admin-materials">Admin Materials ({adminMaterials.length})</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="my-materials">My Materials</TabsTrigger>
+            <TabsTrigger value="admin-materials">Available Materials</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="my-materials" className="space-y-4">
+          <TabsContent value="my-materials" className="space-y-6">
             <div className="flex items-center justify-between">
-              <p className="text-gray-400">Materials you've uploaded to your library</p>
-              <Button size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Add New Material
-              </Button>
+              <div>
+                <h2 className="text-xl font-semibold">Your Uploaded Materials</h2>
+                <p className="text-sm text-gray-400">Materials you've uploaded for approval</p>
+              </div>
+              <Badge variant="secondary">{userMaterials.length} materials</Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userMaterials.map((material) => (
-                <Card
-                  key={material.id}
-                  className="bg-gray-900 border-gray-800 overflow-hidden hover:border-gray-700 transition-colors"
-                >
-                  <CardContent className="p-0">
-                    <div className="aspect-square bg-gray-800 relative">
-                      <Image
+                <Card key={material.id} className="bg-gray-800 border-gray-700">
+                  <CardHeader className="p-4">
+                    <div className="aspect-square bg-gray-700 rounded-md mb-3 overflow-hidden">
+                      <img
                         src={material.image || "/placeholder.svg"}
                         alt={material.name}
-                        width={200}
-                        height={200}
-                        className="object-cover w-full h-full"
+                        className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-medium">{material.name}</h3>
-                      <p className="text-sm text-gray-400">{material.type}</p>
-                      <p className="text-xs text-gray-500 mt-1">Uploaded {material.uploadDate}</p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-sm font-medium">{material.name}</CardTitle>
+                        <p className="text-xs text-gray-400">
+                          {material.type} • {material.color}
+                        </p>
+                      </div>
+                      <Badge className={`${getStatusColor(material.status)} text-white text-xs`}>
+                        {material.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
+                      <span>Uploaded: {material.uploadDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Heart className="h-3 w-3" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-
-              <Card className="bg-gray-900 border-gray-800 border-dashed flex items-center justify-center hover:border-gray-700 transition-colors">
-                <CardContent className="p-6 text-center">
-                  <Button variant="ghost" className="h-20 w-20 rounded-full">
-                    <Upload className="h-10 w-10 text-gray-400" />
-                  </Button>
-                  <p className="mt-2 text-gray-400">Upload Material</p>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
-          <TabsContent value="admin-materials" className="space-y-4">
+          <TabsContent value="admin-materials" className="space-y-6">
             <div className="flex items-center justify-between">
-              <p className="text-gray-400">Curated materials available for all users</p>
+              <div>
+                <h2 className="text-xl font-semibold">Available Materials</h2>
+                <p className="text-sm text-gray-400">Curated sustainable materials from our library</p>
+              </div>
+              <Badge variant="secondary">{adminMaterials.length} materials</Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {adminMaterials.map((material) => (
-                <Card
-                  key={material.id}
-                  className="bg-gray-900 border-gray-800 overflow-hidden hover:border-gray-700 transition-colors"
-                >
-                  <CardContent className="p-0">
-                    <div className="aspect-square bg-gray-800 relative">
-                      <Image
+                <Card key={material.id} className="bg-gray-800 border-gray-700">
+                  <CardHeader className="p-4">
+                    <div className="aspect-square bg-gray-700 rounded-md mb-3 overflow-hidden">
+                      <img
                         src={material.image || "/placeholder.svg"}
                         alt={material.name}
-                        width={200}
-                        height={200}
-                        className="object-cover w-full h-full"
+                        className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-1 bg-blue-900/80 text-blue-300 rounded-md text-xs">
-                          {material.category}
-                        </span>
-                      </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-medium">{material.name}</h3>
-                      <p className="text-sm text-gray-400">{material.type}</p>
-                      <p className="text-xs text-gray-500 mt-1">Admin Curated</p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-sm font-medium">{material.name}</CardTitle>
+                        <p className="text-xs text-gray-400">
+                          {material.type} • {material.color}
+                        </p>
+                      </div>
+                      <Badge className={`${getSustainabilityColor(material.sustainability)} text-white text-xs`}>
+                        {material.sustainability}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-center justify-between text-sm font-medium mb-3">
+                      <span>{material.price}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Download className="h-3 w-3 mr-1" />
+                        Use Material
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Heart className="h-3 w-3" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
