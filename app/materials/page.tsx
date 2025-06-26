@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,13 +12,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Upload, Heart, Eye, Plus, Leaf, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { Search, Upload, Heart, Eye, Plus, Leaf, Clock, CheckCircle, XCircle, AlertCircle, FileUp } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
 export default function MaterialsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [materialName, setMaterialName] = useState("")
+  const [materialType, setMaterialType] = useState("")
+  const [composition, setComposition] = useState("")
+  const [description, setDescription] = useState("")
+  const [materialFile, setMaterialFile] = useState<File | null>(null)
 
   // Mock data for user materials
   const userMaterials = [
@@ -100,6 +107,39 @@ export default function MaterialsPage() {
     },
   ]
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setMaterialFile(e.target.files[0])
+    }
+  }
+
+  const handleUploadMaterial = () => {
+    if (!materialName || !materialType || !composition) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    // Here you would typically upload to your backend
+    console.log("Uploading material:", {
+      name: materialName,
+      type: materialType,
+      composition,
+      description,
+      file: materialFile,
+    })
+
+    // Reset form
+    setMaterialName("")
+    setMaterialType("")
+    setComposition("")
+    setDescription("")
+    setMaterialFile(null)
+    setIsUploadModalOpen(false)
+
+    // Show success message
+    alert("Material uploaded successfully! It will be reviewed by our team.")
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -169,18 +209,24 @@ export default function MaterialsPage() {
                 Upload Material
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-800 text-white">
+            <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
               <DialogHeader>
                 <DialogTitle>Upload New Material</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="material-name">Material Name</Label>
-                  <Input id="material-name" placeholder="Enter material name" className="bg-gray-800 border-gray-700" />
+                  <Label htmlFor="material-name">Material Name *</Label>
+                  <Input
+                    id="material-name"
+                    value={materialName}
+                    onChange={(e) => setMaterialName(e.target.value)}
+                    placeholder="Enter material name"
+                    className="bg-gray-800 border-gray-700"
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="material-type">Material Type</Label>
-                  <Select>
+                  <Label htmlFor="material-type">Material Type *</Label>
+                  <Select value={materialType} onValueChange={setMaterialType}>
                     <SelectTrigger className="bg-gray-800 border-gray-700">
                       <SelectValue placeholder="Select material type" />
                     </SelectTrigger>
@@ -191,30 +237,69 @@ export default function MaterialsPage() {
                       <SelectItem value="wool">Wool</SelectItem>
                       <SelectItem value="linen">Linen</SelectItem>
                       <SelectItem value="denim">Denim</SelectItem>
+                      <SelectItem value="hemp">Hemp</SelectItem>
+                      <SelectItem value="bamboo">Bamboo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="composition">Composition</Label>
-                  <Input id="composition" placeholder="e.g., 100% Cotton" className="bg-gray-800 border-gray-700" />
+                  <Label htmlFor="composition">Composition *</Label>
+                  <Input
+                    id="composition"
+                    value={composition}
+                    onChange={(e) => setComposition(e.target.value)}
+                    placeholder="e.g., 100% Cotton"
+                    className="bg-gray-800 border-gray-700"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe the material..."
                     className="bg-gray-800 border-gray-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="material-image">Material Sample</Label>
-                  <Input id="material-image" type="file" accept="image/*" className="bg-gray-800 border-gray-700" />
+                  <Label htmlFor="material-image">Material Sample Image</Label>
+                  <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400 mb-2">Upload material sample image</p>
+                    <Label
+                      htmlFor="material-image"
+                      className="cursor-pointer bg-gray-800 hover:bg-gray-700 text-white py-2 px-4 rounded-md text-sm inline-flex items-center"
+                    >
+                      <FileUp className="mr-2 h-4 w-4" />
+                      Browse Files
+                    </Label>
+                    <Input
+                      id="material-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    {materialFile && <p className="text-sm text-green-400 mt-2">{materialFile.name}</p>}
+                  </div>
                 </div>
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={() => setIsUploadModalOpen(false)} className="flex-1">
+                  <Button onClick={handleUploadMaterial} className="flex-1">
                     Upload Material
                   </Button>
-                  <Button variant="outline" onClick={() => setIsUploadModalOpen(false)} className="flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsUploadModalOpen(false)
+                      setMaterialName("")
+                      setMaterialType("")
+                      setComposition("")
+                      setDescription("")
+                      setMaterialFile(null)
+                    }}
+                    className="flex-1"
+                  >
                     Cancel
                   </Button>
                 </div>
