@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Search,
   Send,
@@ -15,481 +16,446 @@ import {
   MoreVertical,
   Phone,
   Video,
-  Star,
   Archive,
-  MessageCircle,
+  Star,
+  MessageSquare,
   Clock,
-  CheckCircle,
+  CheckCircle2,
+  AlertCircle,
+  User,
+  Mail,
 } from "lucide-react"
 
+const conversations = [
+  {
+    id: 1,
+    customer: {
+      name: "Sarah Wilson",
+      email: "sarah@example.com",
+      avatar: "/placeholder-user.jpg",
+      status: "online",
+      lastSeen: "now",
+    },
+    lastMessage: "Thank you for the quick response! When will my order be ready?",
+    timestamp: "2 min ago",
+    unreadCount: 2,
+    priority: "high",
+    tags: ["order-inquiry", "urgent"],
+    orderHistory: [{ id: "ORD-001", status: "processing", total: 299.99 }],
+  },
+  {
+    id: 2,
+    customer: {
+      name: "John Doe",
+      email: "john@example.com",
+      avatar: "/placeholder-user.jpg",
+      status: "away",
+      lastSeen: "5 min ago",
+    },
+    lastMessage: "I'd like to modify my design before production starts.",
+    timestamp: "15 min ago",
+    unreadCount: 0,
+    priority: "normal",
+    tags: ["design-change"],
+    orderHistory: [{ id: "ORD-002", status: "pending", total: 199.99 }],
+  },
+  {
+    id: 3,
+    customer: {
+      name: "Emma Thompson",
+      email: "emma@example.com",
+      avatar: "/placeholder-user.jpg",
+      status: "offline",
+      lastSeen: "2 hours ago",
+    },
+    lastMessage: "The fabric quality is amazing! Will definitely order again.",
+    timestamp: "1 hour ago",
+    unreadCount: 0,
+    priority: "low",
+    tags: ["feedback", "satisfied"],
+    orderHistory: [
+      { id: "ORD-003", status: "completed", total: 149.99 },
+      { id: "ORD-004", status: "completed", total: 89.99 },
+    ],
+  },
+]
+
+const messages = [
+  {
+    id: 1,
+    senderId: 1,
+    senderType: "customer",
+    content: "Hi! I have a question about my recent order.",
+    timestamp: "10:30 AM",
+    read: true,
+  },
+  {
+    id: 2,
+    senderId: "admin",
+    senderType: "admin",
+    content: "Hello Sarah! I'd be happy to help you with your order. What would you like to know?",
+    timestamp: "10:32 AM",
+    read: true,
+  },
+  {
+    id: 3,
+    senderId: 1,
+    senderType: "customer",
+    content:
+      "I was wondering about the delivery timeline. The estimated date shows January 25th, but I need it by January 23rd for an event.",
+    timestamp: "10:35 AM",
+    read: true,
+  },
+  {
+    id: 4,
+    senderId: "admin",
+    senderType: "admin",
+    content:
+      "Let me check your order details. I see you have order ORD-001 for a custom blazer. We can expedite this for you.",
+    timestamp: "10:37 AM",
+    read: true,
+  },
+  {
+    id: 5,
+    senderId: 1,
+    senderType: "customer",
+    content: "That would be perfect! Is there an additional cost for expedited shipping?",
+    timestamp: "10:38 AM",
+    read: true,
+  },
+  {
+    id: 6,
+    senderId: 1,
+    senderType: "customer",
+    content: "Thank you for the quick response! When will my order be ready?",
+    timestamp: "10:40 AM",
+    read: false,
+  },
+]
+
 export default function AdminMessages() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeChat, setActiveChat] = useState<any>(null)
+  const [selectedConversation, setSelectedConversation] = useState(conversations[0])
   const [newMessage, setNewMessage] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Mock data for customer conversations
-  const conversations = [
-    {
-      id: 1,
-      customer: {
-        name: "John Doe",
-        email: "john@example.com",
-        avatar: "/placeholder.svg?height=40&width=40",
-        status: "online",
-      },
-      lastMessage: "I have a question about my order status",
-      lastMessageTime: "2 min ago",
-      unreadCount: 3,
-      priority: "high",
-      tags: ["order-inquiry", "urgent"],
-      messages: [
-        {
-          id: 1,
-          sender: "customer",
-          content: "Hi, I placed an order last week (ORD-001) and haven't received any updates.",
-          timestamp: "10:30 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 2,
-          sender: "admin",
-          content: "Hello John! Let me check your order status for you right away.",
-          timestamp: "10:32 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 3,
-          sender: "admin",
-          content: "I can see your order is currently in production. It should be ready for shipping by Friday.",
-          timestamp: "10:33 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 4,
-          sender: "customer",
-          content: "That's great! Will I receive tracking information once it ships?",
-          timestamp: "10:35 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 5,
-          sender: "customer",
-          content: "I have a question about my order status",
-          timestamp: "10:37 AM",
-          date: "2024-01-15",
-        },
-      ],
-    },
-    {
-      id: 2,
-      customer: {
-        name: "Jane Smith",
-        email: "jane@example.com",
-        avatar: "/placeholder.svg?height=40&width=40",
-        status: "away",
-      },
-      lastMessage: "Thank you for the quick response!",
-      lastMessageTime: "1 hour ago",
-      unreadCount: 0,
-      priority: "normal",
-      tags: ["design-feedback"],
-      messages: [
-        {
-          id: 1,
-          sender: "customer",
-          content: "I love the design you created! Can we make a small adjustment to the collar?",
-          timestamp: "9:15 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 2,
-          sender: "admin",
-          content: "I'll make that adjustment and send you the updated design shortly.",
-          timestamp: "9:20 AM",
-          date: "2024-01-15",
-        },
-        {
-          id: 3,
-          sender: "customer",
-          content: "Thank you for the quick response!",
-          timestamp: "9:22 AM",
-          date: "2024-01-15",
-        },
-      ],
-    },
-    {
-      id: 3,
-      customer: {
-        name: "Mike Johnson",
-        email: "mike@example.com",
-        avatar: "/placeholder.svg?height=40&width=40",
-        status: "offline",
-      },
-      lastMessage: "When will my custom jacket be ready?",
-      lastMessageTime: "3 hours ago",
-      unreadCount: 1,
-      priority: "normal",
-      tags: ["timeline-inquiry"],
-      messages: [
-        {
-          id: 1,
-          sender: "customer",
-          content: "When will my custom jacket be ready?",
-          timestamp: "7:45 AM",
-          date: "2024-01-15",
-        },
-      ],
-    },
-    {
-      id: 4,
-      customer: {
-        name: "Sarah Wilson",
-        email: "sarah@example.com",
-        avatar: "/placeholder.svg?height=40&width=40",
-        status: "online",
-      },
-      lastMessage: "The materials look perfect, thank you!",
-      lastMessageTime: "Yesterday",
-      unreadCount: 0,
-      priority: "low",
-      tags: ["material-approval"],
-      messages: [
-        {
-          id: 1,
-          sender: "admin",
-          content: "I've uploaded the material samples for your review. Please let me know your thoughts.",
-          timestamp: "2:30 PM",
-          date: "2024-01-14",
-        },
-        {
-          id: 2,
-          sender: "customer",
-          content: "The materials look perfect, thank you!",
-          timestamp: "3:15 PM",
-          date: "2024-01-14",
-        },
-      ],
-    },
-  ]
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return <Badge className="bg-red-900/30 text-red-400 border-red-700 text-xs">High</Badge>
-      case "normal":
-        return <Badge className="bg-blue-900/30 text-blue-400 border-blue-700 text-xs">Normal</Badge>
-      case "low":
-        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-700 text-xs">Low</Badge>
-      default:
-        return null
-    }
-  }
+  const [searchTerm, setSearchTerm] = useState("")
 
   const getStatusIndicator = (status: string) => {
     switch (status) {
       case "online":
-        return <div className="w-3 h-3 bg-green-500 rounded-full" />
+        return <div className="w-3 h-3 bg-green-400 rounded-full" />
       case "away":
-        return <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+        return <div className="w-3 h-3 bg-yellow-400 rounded-full" />
       case "offline":
-        return <div className="w-3 h-3 bg-gray-500 rounded-full" />
+        return <div className="w-3 h-3 bg-gray-400 rounded-full" />
+      default:
+        return <div className="w-3 h-3 bg-gray-400 rounded-full" />
+    }
+  }
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return <Badge className="bg-red-900/30 text-red-400">High</Badge>
+      case "normal":
+        return <Badge className="bg-blue-900/30 text-blue-400">Normal</Badge>
+      case "low":
+        return <Badge className="bg-gray-900/30 text-gray-400">Low</Badge>
       default:
         return null
     }
   }
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !activeChat) return
-
-    const newMsg = {
-      id: Date.now(),
-      sender: "admin",
-      content: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      date: new Date().toISOString().split("T")[0],
+    if (newMessage.trim()) {
+      console.log("Sending message:", newMessage)
+      setNewMessage("")
     }
-
-    // Update the active chat messages
-    setActiveChat({
-      ...activeChat,
-      messages: [...activeChat.messages, newMsg],
-    })
-
-    setNewMessage("")
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
     }
   }
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [activeChat?.messages])
-
   const filteredConversations = conversations.filter(
     (conv) =>
-      conv.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()),
+      conv.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  // Set default active chat
-  useEffect(() => {
-    if (!activeChat && conversations.length > 0) {
-      setActiveChat(conversations[0])
-    }
-  }, [])
-
   return (
-    <div className="p-6">
-      <div className="flex h-[calc(100vh-8rem)] bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-        {/* Conversations Sidebar */}
-        <div className="w-80 border-r border-gray-800 flex flex-col">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-semibold mb-4">Customer Messages</h2>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Customer Messages</h1>
+          <p className="text-gray-400">Communicate with customers in real-time</p>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Chats</CardTitle>
+            <MessageSquare className="h-4 w-4 text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{conversations.length}</div>
+            <p className="text-xs text-gray-400">Total conversations</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
+            <AlertCircle className="h-4 w-4 text-yellow-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)}</div>
+            <p className="text-xs text-gray-400">Need attention</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
+            <Star className="h-4 w-4 text-red-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{conversations.filter((conv) => conv.priority === "high").length}</div>
+            <p className="text-xs text-gray-400">Urgent conversations</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+            <Clock className="h-4 w-4 text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2.5m</div>
+            <p className="text-xs text-gray-400">Average response</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Chat Interface */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+        {/* Conversations List */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Conversations</CardTitle>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </div>
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                type="search"
                 placeholder="Search conversations..."
-                className="pl-8 bg-gray-800 border-gray-700"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={`p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors ${
-                  activeChat?.id === conversation.id ? "bg-gray-800" : ""
-                }`}
-                onClick={() => setActiveChat(conversation)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={conversation.customer.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>{conversation.customer.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-1 -right-1">
-                      {getStatusIndicator(conversation.customer.status)}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium truncate">{conversation.customer.name}</p>
-                      <div className="flex items-center gap-1">
-                        {getPriorityBadge(conversation.priority)}
-                        {conversation.unreadCount > 0 && (
-                          <Badge className="bg-blue-600 text-white text-xs px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center">
-                            {conversation.unreadCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-400 truncate mb-1">{conversation.lastMessage}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-500">{conversation.lastMessageTime}</p>
-                      <div className="flex gap-1">
-                        {conversation.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs border-gray-600 px-1 py-0">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {activeChat ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={activeChat.customer.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>{activeChat.customer.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-1 -right-1">{getStatusIndicator(activeChat.customer.status)}</div>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{activeChat.customer.name}</h3>
-                    <p className="text-sm text-gray-400">{activeChat.customer.email}</p>
-                  </div>
-                  {getPriorityBadge(activeChat.priority)}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Video className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Star className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto bg-gray-950">
-                <div className="space-y-4">
-                  {activeChat.messages.map((message: any) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender === "admin" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div className="flex items-start gap-3 max-w-[70%]">
-                        {message.sender === "customer" && (
-                          <Avatar className="w-8 h-8 mt-1">
-                            <AvatarImage src={activeChat.customer.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{activeChat.customer.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div
-                          className={`rounded-lg p-3 ${
-                            message.sender === "admin"
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-800 text-white border border-gray-700"
-                          }`}
-                        >
-                          <p>{message.content}</p>
-                          <p className="text-xs opacity-70 text-right mt-1">{message.timestamp}</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[450px]">
+              <div className="space-y-1 p-4">
+                {filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      selectedConversation.id === conversation.id ? "bg-gray-800" : "hover:bg-gray-800/50"
+                    }`}
+                    onClick={() => setSelectedConversation(conversation)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={conversation.customer.avatar || "/placeholder.svg"} />
+                          <AvatarFallback>{conversation.customer.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1">
+                          {getStatusIndicator(conversation.customer.status)}
                         </div>
-                        {message.sender === "admin" && (
-                          <Avatar className="w-8 h-8 mt-1">
-                            <AvatarFallback>AD</AvatarFallback>
-                          </Avatar>
-                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium truncate">{conversation.customer.name}</p>
+                          <div className="flex items-center gap-1">
+                            {conversation.unreadCount > 0 && (
+                              <Badge className="bg-red-600 text-white text-xs">{conversation.unreadCount}</Badge>
+                            )}
+                            {getPriorityBadge(conversation.priority)}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-400 truncate">{conversation.lastMessage}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-gray-500">{conversation.timestamp}</p>
+                          <div className="flex gap-1">
+                            {conversation.tags.map((tag, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
+                  </div>
+                ))}
               </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-              {/* Message Input */}
-              <div className="p-4 border-t border-gray-800">
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Textarea
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 min-h-[40px] max-h-32 bg-gray-800 border-gray-700 resize-none"
-                  />
-                  <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
-                  <span>Press Enter to send, Shift+Enter for new line</span>
-                  <div className="flex items-center gap-4">
-                    <span>Priority: {activeChat.priority}</span>
-                    <span>Status: {activeChat.customer.status}</span>
+        {/* Chat Messages */}
+        <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar>
+                    <AvatarImage src={selectedConversation.customer.avatar || "/placeholder.svg"} />
+                    <AvatarFallback>{selectedConversation.customer.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1">
+                    {getStatusIndicator(selectedConversation.customer.status)}
                   </div>
                 </div>
+                <div>
+                  <p className="font-medium">{selectedConversation.customer.name}</p>
+                  <p className="text-sm text-gray-400">
+                    {selectedConversation.customer.status === "online"
+                      ? "Online now"
+                      : `Last seen ${selectedConversation.customer.lastSeen}`}
+                  </p>
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
-                <p className="text-gray-400">Choose a customer conversation to start messaging</p>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">
+                  <Phone className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Video className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Archive className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          )}
-        </div>
+          </CardHeader>
+          <CardContent className="flex flex-col h-[450px]">
+            {/* Messages */}
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.senderType === "admin" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[70%] p-3 rounded-lg ${
+                        message.senderType === "admin" ? "bg-blue-600 text-white" : "bg-gray-800 text-white"
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs opacity-70">{message.timestamp}</p>
+                        {message.senderType === "admin" && (
+                          <CheckCircle2 className={`w-3 h-3 ${message.read ? "text-blue-200" : "text-blue-400"}`} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
 
-        {/* Customer Info Sidebar */}
-        {activeChat && (
-          <div className="w-64 border-l border-gray-800 p-4 space-y-4">
-            <div className="text-center">
-              <Avatar className="w-16 h-16 mx-auto mb-3">
-                <AvatarImage src={activeChat.customer.avatar || "/placeholder.svg"} />
-                <AvatarFallback>{activeChat.customer.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <h3 className="font-medium">{activeChat.customer.name}</h3>
-              <p className="text-sm text-gray-400">{activeChat.customer.email}</p>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                {getStatusIndicator(activeChat.customer.status)}
-                <span className="text-sm capitalize">{activeChat.customer.status}</span>
+            {/* Message Input */}
+            <div className="flex items-center gap-2 mt-4 p-3 bg-gray-800 rounded-lg">
+              <Button variant="ghost" size="sm">
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Input
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1 border-none bg-transparent focus:ring-0"
+              />
+              <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Customer Information Panel */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader>
+          <CardTitle>Customer Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h4 className="font-medium mb-3">Contact Details</h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">{selectedConversation.customer.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">{selectedConversation.customer.email}</span>
+                </div>
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium mb-2">Tags</h4>
-              <div className="flex flex-wrap gap-1">
-                {activeChat.tags.map((tag: string, index: number) => (
-                  <Badge key={index} variant="outline" className="text-xs border-gray-600">
-                    {tag}
-                  </Badge>
+              <h4 className="font-medium mb-3">Order History</h4>
+              <div className="space-y-2">
+                {selectedConversation.orderHistory.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between text-sm">
+                    <span>{order.id}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{order.status}</Badge>
+                      <span>£{order.total}</span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <h4 className="font-medium mb-2">Quick Actions</h4>
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark as Resolved
+              <h4 className="font-medium mb-3">Quick Actions</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm">
+                  View Orders
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Set Reminder
+                <Button variant="outline" size="sm">
+                  View Designs
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Archive className="h-4 w-4 mr-2" />
-                  Archive Chat
+                <Button variant="outline" size="sm">
+                  Send Email
                 </Button>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Customer History</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Orders:</span>
-                  <span>3</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total Spent:</span>
-                  <span>£847.96</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Member Since:</span>
-                  <span>Jan 2023</span>
-                </div>
+                <Button variant="outline" size="sm">
+                  Create Note
+                </Button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
