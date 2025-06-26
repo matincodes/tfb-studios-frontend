@@ -2,11 +2,136 @@
 
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Heart } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Search, Upload, Download, Eye, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
-import { Separator } from "@/components/ui/separator"
+import Image from "next/image"
 
 export default function Materials() {
+  // Sample data for materials
+  const userMaterials = [
+    {
+      id: 1,
+      name: "Custom Cotton Blend",
+      type: "Cotton",
+      color: "Navy Blue",
+      uploadDate: "2024-01-15",
+      size: "2.4 MB",
+      image: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 2,
+      name: "Organic Linen",
+      type: "Linen",
+      color: "Natural",
+      uploadDate: "2024-01-10",
+      size: "1.8 MB",
+      image: "/placeholder.svg?height=100&width=100",
+    },
+    {
+      id: 3,
+      name: "Recycled Polyester",
+      type: "Polyester",
+      color: "Black",
+      uploadDate: "2024-01-08",
+      size: "3.1 MB",
+      image: "/placeholder.svg?height=100&width=100",
+    },
+  ]
+
+  const adminMaterials = [
+    {
+      id: 4,
+      name: "Premium Wool",
+      type: "Wool",
+      color: "Charcoal",
+      uploadDate: "2024-01-20",
+      size: "4.2 MB",
+      image: "/placeholder.svg?height=100&width=100",
+      isAdmin: true,
+    },
+    {
+      id: 5,
+      name: "Sustainable Hemp",
+      type: "Hemp",
+      color: "Olive Green",
+      uploadDate: "2024-01-18",
+      size: "2.9 MB",
+      image: "/placeholder.svg?height=100&width=100",
+      isAdmin: true,
+    },
+    {
+      id: 6,
+      name: "Bamboo Fiber",
+      type: "Bamboo",
+      color: "Cream",
+      uploadDate: "2024-01-16",
+      size: "2.1 MB",
+      image: "/placeholder.svg?height=100&width=100",
+      isAdmin: true,
+    },
+    {
+      id: 7,
+      name: "Merino Wool",
+      type: "Wool",
+      color: "Grey",
+      uploadDate: "2024-01-14",
+      size: "3.8 MB",
+      image: "/placeholder.svg?height=100&width=100",
+      isAdmin: true,
+    },
+  ]
+
+  const MaterialCard = ({ material, showActions = true }) => (
+    <Card className="bg-gray-900 border-gray-800 overflow-hidden">
+      <CardContent className="p-0">
+        <div className="aspect-square bg-gray-800 relative">
+          <Image
+            src={material.image || "/placeholder.svg"}
+            alt={material.name}
+            width={200}
+            height={200}
+            className="object-cover w-full h-full"
+          />
+          {material.isAdmin && <Badge className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700">Admin</Badge>}
+        </div>
+        <div className="p-4">
+          <h3 className="font-medium text-white mb-1">{material.name}</h3>
+          <p className="text-sm text-gray-400 mb-2">
+            {material.type} • {material.color}
+          </p>
+          <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+            <span>{material.uploadDate}</span>
+            <span>{material.size}</span>
+          </div>
+          {showActions && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex-1 h-8 border-gray-700 hover:bg-gray-800">
+                <Eye className="h-3 w-3 mr-1" />
+                View
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 border-gray-700 hover:bg-gray-800">
+                <Download className="h-3 w-3" />
+              </Button>
+              {!material.isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-gray-700 hover:bg-gray-800 text-red-400 hover:text-red-300"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <Layout>
       <header className="p-6 border-b border-gray-800 flex items-center justify-between">
@@ -16,113 +141,105 @@ export default function Materials() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">Sustainable Fabric selection</h1>
+          <h1 className="text-2xl font-bold">Materials Library</h1>
         </div>
-        <div>
-          <Button variant="ghost" size="icon">
-            <Heart className="h-5 w-5" />
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Input type="search" placeholder="Search materials..." className="pl-8 bg-gray-900 border-gray-700" />
+          </div>
+          <Button className="gap-2">
+            <Upload className="h-4 w-4" />
+            Upload Material
           </Button>
         </div>
       </header>
 
-      <div className="flex flex-1">
-        <div className="w-64 border-r border-gray-800 p-4 space-y-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Colour</h3>
-            <Button variant="outline" className="w-full justify-between">
-              Select
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Button>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Fabric Composition</h3>
-            <Button variant="outline" className="w-full justify-between">
-              Select
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Button>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Fabric Type</h3>
-            <Button variant="outline" className="w-full justify-between">
-              Select
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Button>
-            <div className="mt-2 space-y-1 text-sm">
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Canvas</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Flannel</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Satin & Silk</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Faux Suede</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Velvet & Velour</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Jacquard</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Waterproof</div>
-              <div className="px-3 py-1 hover:bg-gray-800 rounded-md cursor-pointer">Cotton Lawn</div>
-            </div>
-          </div>
-          <Separator className="bg-gray-800" />
-          <div>
-            <h3 className="text-sm font-medium mb-2">Pattern</h3>
-            <Button variant="outline" className="w-full justify-between">
-              Select
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Button>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Weight Band</h3>
-            <Button variant="outline" className="w-full justify-between">
-              Select
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Button>
-          </div>
-        </div>
+      <main className="flex-1 p-6">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-900 border-gray-800">
+            <TabsTrigger value="all">All Materials</TabsTrigger>
+            <TabsTrigger value="my-materials">My Materials</TabsTrigger>
+            <TabsTrigger value="admin-materials">Admin Materials</TabsTrigger>
+          </TabsList>
 
-        <div className="flex-1 p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { name: "Nylon Pine", price: "£9.95 PER METRE" },
-              { name: "Avalon Mid Blue OH", price: "£9.95 PER METRE" },
-              { name: "Camo Ripstop", price: "£9.95 PER METRE" },
-              { name: "Ventura Black", price: "£9.95 PER METRE" },
-              { name: "Ventura Bottle", price: "£9.95 PER METRE" },
-              { name: "Airtex Mesh Emerald", price: "£9.95 PER METRE" },
-              { name: "Anti Pil Plain Bottle", price: "£9.95 PER METRE" },
-              { name: "Double Touch Fuchsia", price: "£9.95 PER METRE" },
-            ].map((fabric, index) => (
-              <div key={index} className="bg-gray-800 rounded-md overflow-hidden">
-                <div className="aspect-square bg-gray-700"></div>
-                <div className="p-2">
-                  <h3 className="text-sm font-medium">{fabric.name}</h3>
-                  <p className="text-xs text-gray-400">{fabric.price}</p>
+          <TabsContent value="all" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">My Materials</h2>
+                  <Badge variant="outline" className="border-gray-700">
+                    {userMaterials.length} materials
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {userMaterials.map((material) => (
+                    <MaterialCard key={material.id} material={material} />
+                  ))}
+                  <Card className="bg-gray-900 border-gray-800 border-dashed flex items-center justify-center">
+                    <CardContent className="p-6 text-center">
+                      <Button variant="ghost" className="h-20 w-20 rounded-full">
+                        <Plus className="h-10 w-10 text-gray-400" />
+                      </Button>
+                      <p className="mt-2 text-gray-400">Upload Material</p>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Admin Materials</h2>
+                  <Badge variant="outline" className="border-gray-700">
+                    {adminMaterials.length} materials
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {adminMaterials.map((material) => (
+                    <MaterialCard key={material.id} material={material} showActions={false} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="my-materials" className="mt-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">My Materials</h2>
+              <Badge variant="outline" className="border-gray-700">
+                {userMaterials.length} materials
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {userMaterials.map((material) => (
+                <MaterialCard key={material.id} material={material} />
+              ))}
+              <Card className="bg-gray-900 border-gray-800 border-dashed flex items-center justify-center">
+                <CardContent className="p-6 text-center">
+                  <Button variant="ghost" className="h-20 w-20 rounded-full">
+                    <Plus className="h-10 w-10 text-gray-400" />
+                  </Button>
+                  <p className="mt-2 text-gray-400">Upload Material</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="admin-materials" className="mt-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Admin Materials</h2>
+              <Badge variant="outline" className="border-gray-700">
+                {adminMaterials.length} materials
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {adminMaterials.map((material) => (
+                <MaterialCard key={material.id} material={material} showActions={false} />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
     </Layout>
   )
 }
