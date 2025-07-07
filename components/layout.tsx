@@ -1,12 +1,15 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, Settings, MessageSquare, Package, LayoutGrid, Palette, ShoppingBag, Globe } from "lucide-react"
+import { Search, Settings, MessageSquare, Package, LayoutGrid, Palette, ShoppingBag, Globe, LogOut } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/auth-provider"
+import DashboardLoading from "@/app/dashboard/loading"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -15,12 +18,28 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const router = useRouter()
 
+  const { user, isLoading, logout } = useAuth()
+
+  console.log("User in Layout:", user)
+
+  // Logic to protect the dashboard routes
+  useEffect(() => {
+    // If the initial check is finished and there is no user, redirect to login page
+    if (!isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, user, router]);
+
   const handleVisitWebsite = () => {
     // Navigate to the home page
     window.location.href = "/"
   }
 
-  return (
+   if (isLoading) {
+    return <DashboardLoading />;
+  }
+
+  return user ? (
     <div className="flex min-h-screen bg-black text-white">
       {/* Sidebar */}
       <div className="w-64 border-r border-gray-800 flex flex-col">
@@ -115,12 +134,17 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarImage src="/placeholder-user.jpg" />
-              <AvatarFallback>MS</AvatarFallback>
+              <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">Matthew</p>
-              <p className="text-xs text-gray-400">Design Manager</p>
+              <p className="text-sm font-medium">{user.name || "TFB User"}</p>
+              <p className="text-xs text-gray-400">Fashion Designer</p>
             </div>
+            {/* Logout Button */}
+            <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only">Logout</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -128,5 +152,5 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col">{children}</div>
     </div>
-  )
+  ): null;
 }
