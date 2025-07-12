@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useRouter } from "next/navigation"
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Upload, X, FileUp, ImageIcon, FileText, ArrowRight, Plus, Check } from "lucide-react"
+import { ArrowLeft, Upload, X, FileUp, ImageIcon, FileText, ArrowRight, Plus, Check, Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api" 
 
 interface UploadedFile {
   file: File
@@ -24,66 +26,107 @@ interface Material {
   id: string
   name: string
   type: string
+  color: string
+  source: string
   composition: string
   price: string
-  thumbnail: string
+  imageUrl: string
   inStock: boolean
 }
 
 // Sample materials data
-const availableMaterials: Material[] = [
-  {
-    id: "cotton-canvas",
-    name: "Organic Cotton Canvas",
-    type: "Canvas",
-    composition: "100% Organic Cotton",
-    price: "£12.95 PER METRE",
-    thumbnail: "/placeholder.svg?height=200&width=200",
-    inStock: true,
-  },
-  {
-    id: "silk-satin",
-    name: "Premium Silk Satin",
-    type: "Satin & Silk",
-    composition: "100% Mulberry Silk",
-    price: "£24.95 PER METRE",
-    thumbnail: "/placeholder.svg?height=200&width=200",
-    inStock: true,
-  },
-  {
-    id: "wool-flannel",
-    name: "Merino Wool Flannel",
-    type: "Flannel",
-    composition: "100% Merino Wool",
-    price: "£18.95 PER METRE",
-    thumbnail: "/placeholder.svg?height=200&width=200",
-    inStock: false,
-  },
-  {
-    id: "recycled-denim",
-    name: "Recycled Denim",
-    type: "Denim",
-    composition: "80% Recycled Cotton, 20% Polyester",
-    price: "£15.95 PER METRE",
-    thumbnail: "/placeholder.svg?height=200&width=200",
-    inStock: true,
-  },
-]
+// const availableMaterials: Material[] = [
+//   {
+//     id: "cotton-canvas",
+//     name: "Organic Cotton Canvas",
+//     type: "Canvas",
+//     composition: "100% Organic Cotton",
+//     price: "£12.95 PER METRE",
+//     thumbnail: "/placeholder.svg?height=200&width=200",
+//     inStock: true,
+//   },
+//   {
+//     id: "silk-satin",
+//     name: "Premium Silk Satin",
+//     type: "Satin & Silk",
+//     composition: "100% Mulberry Silk",
+//     price: "£24.95 PER METRE",
+//     thumbnail: "/placeholder.svg?height=200&width=200",
+//     inStock: true,
+//   },
+//   {
+//     id: "wool-flannel",
+//     name: "Merino Wool Flannel",
+//     type: "Flannel",
+//     composition: "100% Merino Wool",
+//     price: "£18.95 PER METRE",
+//     thumbnail: "/placeholder.svg?height=200&width=200",
+//     inStock: false,
+//   },
+//   {
+//     id: "recycled-denim",
+//     name: "Recycled Denim",
+//     type: "Denim",
+//     composition: "80% Recycled Cotton, 20% Polyester",
+//     price: "£15.95 PER METRE",
+//     thumbnail: "/placeholder.svg?height=200&width=200",
+//     inStock: true,
+//   },
+// ]
 
 export default function NewDesignPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+
   const [currentStep, setCurrentStep] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [dragActive, setDragActive] = useState(false)
-  const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null)
-  const [showMaterialUpload, setShowMaterialUpload] = useState(false)
   const [designName, setDesignName] = useState("")
   const [designDescription, setDesignDescription] = useState("")
 
-  // Custom material upload states
+
+  const [availableMaterials, setAvailableMaterials] = useState<Material[]>([])
+  const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null)
+  const [showMaterialUpload, setShowMaterialUpload] = useState(false)
   const [customMaterialName, setCustomMaterialName] = useState("")
   const [customMaterialType, setCustomMaterialType] = useState("")
   const [customMaterialComposition, setCustomMaterialComposition] = useState("")
+  const [customMaterialColor, setCustomMaterialColor] = useState("")
   const [customMaterialFile, setCustomMaterialFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.get("/fabrics")
+        const formattedMaterials = response.data.fabrics.map((fabric: any) => ({
+          id: fabric.id,
+          name: fabric.name,
+          type: fabric.type,
+          color: fabric.color || "N/A",
+          source: fabric.source || "N/A",
+          composition: fabric.composition || "N/A",
+          price: fabric.price || "0.00 PER METRE",
+          imageUrl: fabric.imageUrl,
+          inStock: true,
+        }));
+        setAvailableMaterials(formattedMaterials)
+      } catch (err) {
+        console.error("Error fetching materials:", err)
+        toast({
+          title: "Error",
+          description: "Failed to load materials. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    };
+    fetchMaterials()
+  }, [toast])
 
   // File upload handlers
   const handleDrag = (e: React.DragEvent) => {
@@ -149,37 +192,111 @@ export default function NewDesignPage() {
   const canProceedToStep2 = files.length > 0 && designName.trim() !== ""
   const canProceedToStep3 = selectedMaterial !== null
 
-  const handleAddCustomMaterial = () => {
-    if (customMaterialName && customMaterialType && customMaterialComposition) {
-      // Here you would typically upload the material to your backend
-      console.log("Adding custom material:", {
-        name: customMaterialName,
-        type: customMaterialType,
-        composition: customMaterialComposition,
-        file: customMaterialFile,
-      })
+  const handleAddCustomMaterial = async () => {
+    if (!customMaterialName || !customMaterialType || !customMaterialComposition) {
+        toast({ title: "Please fill all material fields", variant: "destructive" });
+        return;
+    }
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('name', customMaterialName);
+    formData.append('type', customMaterialType);
+    formData.append('composition', customMaterialComposition);
+    formData.append('color', customMaterialColor); 
+    formData.append('source', 'USER_UPLOAD');
+    if (customMaterialFile) {
+        formData.append('image', customMaterialFile);
+    }
+    
+    try {
+        const response = await api.post('/fabrics', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
-      // Reset form
-      setCustomMaterialName("")
-      setCustomMaterialType("")
-      setCustomMaterialComposition("")
-      setCustomMaterialFile(null)
-      setShowMaterialUpload(false)
+        // Add new material to the list and reset the form
+        const newMaterial = {
+            id: response.data.fabric.id,
+            name: response.data.fabric.name,
+            type: response.data.fabric.type,
+            color: response.data.fabric.color || 'N/A',
+            source: response.data.fabric.source || 'N/A',
+            composition: response.data.fabric.composition || 'N/A',
+            price: `£${response.data.fabric.price || '0.00'} PER METRE`,
+            imageUrl: response.data.fabric.imageUrl || '/placeholder.svg',
+            inStock: false,
+        };
+        setAvailableMaterials(prev => [newMaterial, ...prev]);
+        toast({ title: "Success", description: "Custom material added." });
+        
+        // Reset form
+        setCustomMaterialName("");
+        setCustomMaterialType("");
+        setCustomMaterialComposition("");
+        setCustomMaterialFile(null);
+        setShowMaterialUpload(false);
+        setCustomMaterialColor("");
 
-      // You could add the new material to the available materials list here
+    } catch (err: any) {
+        toast({
+            title: "Upload Failed",
+            description: err.response?.data?.error || "Could not upload custom material.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsLoading(false);
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Handle final submission
-    console.log({
-      designName,
-      designDescription,
-      files: files.map((f) => f.file.name),
-      selectedMaterial,
-    })
-    // Redirect to designs page or show success message
+     if (!selectedMaterial) {
+      toast({
+        title: "Material not selected",
+        description: "Please select a material before submitting your design.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (files.length === 0) {
+        toast({ title: "Please upload at least one design file.", variant: "destructive"});
+        return;
+    }
+    setIsLoading(true);
+    setError(null);
+
+
+    const formData = new FormData();
+    formData.append('name', designName);
+    formData.append('description', designDescription);
+    formData.append('image', files[0].file);
+    formData.append('initialFabricId', selectedMaterial);
+    
+    try {
+        // 4. Send the complete data package to the backend.
+        await api.post('/designs', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        toast({
+            title: "Design Submitted!",
+            description: "Your design has been successfully created and is awaiting review.",
+        });
+        // Redirect to the main designs page on success
+        router.push('/designs');
+
+    } catch (err: any) {
+        setError(err.response?.data?.error || "An error occurred during submission.");
+        toast({
+          title: "Submission Failed",
+          description: err.response?.data?.error || "Could not submit your design.",
+          variant: "destructive",
+        })
+    } finally {
+        setIsLoading(false);
+    }
   }
+
 
   return (
     <Layout>
@@ -383,6 +500,16 @@ export default function NewDesignPage() {
                       className="bg-gray-800 border-gray-700"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="material-composition">Color</Label>
+                    <Input
+                      id="material-color"
+                      value={customMaterialColor}
+                      onChange={(e) => setCustomMaterialColor(e.target.value)}
+                      placeholder="e.g., Navy Blue"
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
                   <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
                     <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-400 mb-2">Upload material sample image</p>
@@ -427,7 +554,7 @@ export default function NewDesignPage() {
                   <CardContent className="p-4">
                     <div className="aspect-square relative rounded-md overflow-hidden mb-3">
                       <Image
-                        src={material.thumbnail || "/placeholder.svg"}
+                        src={material.imageUrl || "/placeholder.svg"}
                         alt={material.name}
                         fill
                         className="object-cover"
@@ -520,7 +647,7 @@ export default function NewDesignPage() {
                           <>
                             <div className="aspect-square relative rounded-md overflow-hidden w-24 h-24">
                               <Image
-                                src={material.thumbnail || "/placeholder.svg"}
+                                src={material.imageUrl || "/placeholder.svg"}
                                 alt={material.name}
                                 fill
                                 className="object-cover"
@@ -543,15 +670,17 @@ export default function NewDesignPage() {
                 </CardContent>
               </Card>
             </div>
+            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setCurrentStep(2)}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button onClick={handleSubmit} className="flex items-center gap-2">
-                Create Design
-                <Check className="h-4 w-4" />
+              <Button onClick={handleSubmit} disabled={isLoading} className="flex items-center gap-2">
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Submitting..." : "Create Design"}
+                {!isLoading && <Check className="h-4 w-4" />}
               </Button>
             </div>
           </div>

@@ -1,11 +1,15 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { Search, Settings, MessageSquare, Package, LayoutGrid, Palette, ShoppingBag, Globe, LogOut } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -27,6 +31,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { UploadDesignModal } from "@/components/upload-design-modal"
+import { useAuth } from "@/lib/auth-provider"
+import DashboardLoading from "@/app/dashboard/loading"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -38,6 +44,18 @@ export function Layout({ children }: LayoutProps) {
   const [isOrdersOpen, setIsOrdersOpen] = useState(true)
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
+
+  const { user, isLoading, logout } = useAuth()
+
+  console.log("User in Layout:", user)
+
+  // Logic to protect the dashboard routes
+  useEffect(() => {
+    // If the initial check is finished and there is no user, redirect to login page
+    if (!isLoading && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, user, router]);
 
   const navigation = [
     {
@@ -132,7 +150,11 @@ export function Layout({ children }: LayoutProps) {
     },
   ]
 
-  return (
+   if (isLoading) {
+    return <DashboardLoading />;
+  }
+
+  return user ? (
     <TooltipProvider>
       <div className="flex h-screen bg-black text-white">
         {/* Sidebar */}
@@ -223,18 +245,21 @@ export function Layout({ children }: LayoutProps) {
             })}
           </nav>
 
-          {/* User Profile */}
-          <div className="p-4 border-t border-gray-800">
-            <div className="flex items-center gap-3">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">John Doe</p>
-                <p className="text-xs text-gray-400 truncate">john@example.com</p>
-              </div>
+        <div className="p-4 border-t border-gray-800">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src="/placeholder-user.jpg" />
+              <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium">{user.name || "TFB User"}</p>
+              <p className="text-xs text-gray-400">Fashion Designer</p>
             </div>
+            {/* Logout Button */}
+            <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only">Logout</span>
+            </Button>
           </div>
         </div>
 
@@ -273,5 +298,5 @@ export function Layout({ children }: LayoutProps) {
         <UploadDesignModal open={showUploadModal} onOpenChange={setShowUploadModal} />
       </div>
     </TooltipProvider>
-  )
+  ): null;
 }

@@ -7,13 +7,16 @@ import { Plus, Search, ShoppingBag } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-provider"
 
 export default function Dashboard() {
+  const { user } = useAuth()
+
   return (
     <Layout>
       <header className="p-6 border-b border-gray-800 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Hello Matthew 👋</h1>
+          <h1 className="text-2xl font-bold">Hello {user?.name || 'there'} 👋</h1>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" className="border-gray-700 hover:bg-gray-800" asChild>
@@ -41,7 +44,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <Card className="bg-gray-900 border-gray-800 overflow-hidden">
+            {/* <Card className="bg-gray-900 border-gray-800 overflow-hidden">
               <CardContent className="p-0">
                 <Link href="/designs/funky-jacket">
                   <div className="aspect-square bg-gray-800 relative">
@@ -59,7 +62,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card className="bg-gray-900 border-gray-800 border-dashed flex items-center justify-center">
               <CardContent className="p-6 text-center">
