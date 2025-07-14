@@ -41,9 +41,6 @@ export function Layout({ children }: LayoutProps) {
   const router = useRouter()
   // Get the current pathname to determine active navigation item
   const pathname = usePathname()
-  const [isDesignsOpen, setIsDesignsOpen] = useState(true)
-  const [isOrdersOpen, setIsOrdersOpen] = useState(true)
-  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
 
   const { user, isLoading, logout } = useAuth()
@@ -67,23 +64,9 @@ export function Layout({ children }: LayoutProps) {
     },
     {
       name: "Designs",
+      href: "/designs",
       icon: Palette,
-      current: pathname.startsWith("/designs"),
-      isCollapsible: true,
-      isOpen: isDesignsOpen,
-      setIsOpen: setIsDesignsOpen,
-      children: [
-        {
-          name: "All Designs",
-          href: "/designs",
-          current: pathname === "/designs",
-        },
-        {
-          name: "Create New",
-          href: "/designs/new",
-          current: pathname === "/designs/new",
-        },
-      ],
+      current: pathname === "/designs",
     },
     {
       name: "Materials",
@@ -93,23 +76,9 @@ export function Layout({ children }: LayoutProps) {
     },
     {
       name: "Orders",
+      href: "/orders",
       icon: Package,
-      current: pathname.startsWith("/orders"),
-      isCollapsible: true,
-      isOpen: isOrdersOpen,
-      setIsOpen: setIsOrdersOpen,
-      children: [
-        {
-          name: "All Orders",
-          href: "/orders",
-          current: pathname === "/orders",
-        },
-        {
-          name: "Create Order",
-          href: "/orders/new",
-          current: pathname === "/orders/new",
-        },
-      ],
+      current: pathname === "/orders",
     },
     {
       name: "Messages",
@@ -117,31 +86,6 @@ export function Layout({ children }: LayoutProps) {
       icon: MessageSquare,
       current: pathname === "/messages",
       badge: "3",
-    },
-    {
-      name: "Analytics",
-      icon: BarChart3,
-      current: pathname.startsWith("/analytics"),
-      isCollapsible: true,
-      isOpen: isAnalyticsOpen,
-      setIsOpen: setIsAnalyticsOpen,
-      children: [
-        {
-          name: "Overview",
-          href: "/analytics",
-          current: pathname === "/analytics",
-        },
-        {
-          name: "Sales",
-          href: "/analytics/sales",
-          current: pathname === "/analytics/sales",
-        },
-        {
-          name: "Performance",
-          href: "/analytics/performance",
-          current: pathname === "/analytics/performance",
-        },
-      ],
     },
     {
       name: "Settings",
@@ -156,6 +100,7 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return user ? (
+    <>
     <TooltipProvider>
       <div className="flex h-screen bg-black text-white">
         {/* Sidebar */}
@@ -182,54 +127,15 @@ export function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {navigation.map((item) => {
-              if (item.isCollapsible) {
-                return (
-                  <Collapsible key={item.name} open={item.isOpen} onOpenChange={item.setIsOpen}>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-between hover:bg-gray-800 hover:text-white",
-                          item.current ? "bg-gray-800 text-white" : "text-gray-300",
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <item.icon className="w-5 h-5" />
-                          <span>{item.name}</span>
-                        </div>
-                        {item.isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1 mt-1">
-                      {item.children?.map((child) => (
-                        <Link key={child.name} href={child.href}>
-                          <Button
-                            variant="ghost"
-                            className={cn(
-                              "w-full justify-start pl-12 hover:bg-gray-800 hover:text-white",
-                              child.current ? "bg-gray-800 text-white" : "text-gray-400",
-                            )}
-                          >
-                            {child.name}
-                          </Button>
-                        </Link>
-                      ))}
-                    </CollapsibleContent>
-                  </Collapsible>
-                )
-              }
-
-              return (
+          <nav className="flex-1 p-4 overflow-y-auto">
+            {navigation.map((item) => (
                 <Tooltip key={item.name}>
                   <TooltipTrigger asChild>
-                    {item.href ? (
                       <Link href={item.href}>
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start hover:bg-gray-800 hover:text-white",
+                            "w-full justify-start mb-2 hover:bg-gray-800 hover:text-white",
                             item.current ? "bg-gray-800 text-white" : "text-gray-300",
                           )}
                         >
@@ -238,29 +144,29 @@ export function Layout({ children }: LayoutProps) {
                           {item.badge && <Badge className="ml-auto bg-blue-600 text-white">{item.badge}</Badge>}
                         </Button>
                       </Link>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start hover:bg-gray-800 hover:text-white",
-                          item.current ? "bg-gray-800 text-white" : "text-gray-300",
-                        )}
-                        disabled
-                      >
-                        <item.icon className="w-5 h-5 mr-3" />
-                        <span>{item.name}</span>
-                        {item.badge && <Badge className="ml-auto bg-blue-600 text-white">{item.badge}</Badge>}
-                      </Button>
-                    )}
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{item.name}</p>
                   </TooltipContent>
                 </Tooltip>
               )
-            })}
+            )}
+
+            {/* Logout Button */}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                   <Button variant="ghost" className="w-full justify-start mt-5 text-red-400 hover:bg-gray-800 hover:text-red-700" onClick={logout}>
+                       <LogOut className="w-5 h-5 mr-3" />
+                       <span>Logout</span>
+                   </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Logout</p>
+                </TooltipContent>
+              </Tooltip>
           </nav>
 
+          
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center gap-3">
             <Avatar>
@@ -271,14 +177,9 @@ export function Layout({ children }: LayoutProps) {
               <p className="text-sm font-medium">{user.name || "TFB User"}</p>
               <p className="text-xs text-gray-400">Fashion Designer</p>
             </div>
-            {/* Logout Button */}
-            <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
-                <LogOut className="h-4 w-4" />
-                <span className="sr-only">Logout</span>
-            </Button>
           </div>
         </div>
-
+      </div>
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
@@ -300,7 +201,7 @@ export function Layout({ children }: LayoutProps) {
                 </Button>
                 <Avatar className="w-8 h-8">
                   <AvatarImage src="/placeholder-user.jpg" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{user.name ? `${user.name.charAt(0).toUpperCase()}${user.name.charAt(1).toUpperCase()}` : 'JD'}</AvatarFallback>
                 </Avatar>
               </div>
             </div>
@@ -314,5 +215,6 @@ export function Layout({ children }: LayoutProps) {
         <UploadDesignModal open={showUploadModal} onOpenChange={setShowUploadModal} />
       </div>
     </TooltipProvider>
+    </>
   ): null;
 }
