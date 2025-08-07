@@ -215,7 +215,7 @@ export default function MaterialsPage() {
       material.type.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const filteredAdminMaterials = adminMaterials.filter(
+  const filteredAdminMaterials = combinedAvailableMaterials.filter(
     (material) =>
       material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       material.type.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -450,7 +450,7 @@ export default function MaterialsPage() {
           {/* Available Materials Tab */}
           <TabsContent value="available-materials">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {combinedAvailableMaterials.map((material) => (
+              {filteredAdminMaterials.map((material) => (
                 <Card key={material.id} className="bg-gray-900 border-gray-800 overflow-hidden">
                   <div className="aspect-square relative">
                     <Image

@@ -51,7 +51,7 @@ export default function SettingsPage() {
     if (user) {
       setProfileData({
         name: user.name || "",
-        role: user.role || "USER",
+        role: user.role === "USER" ? "Designer" : "Admin",
         email: user.email || "",
         // Use defaults for new fields if they don't exist on the user object yet
         phone: "",

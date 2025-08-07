@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   logout: () => Promise<void>;
+  updateUser: (newUser: Partial<User>) => void;
 }
 
 // Create the context
@@ -64,12 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUserProfile();
   }, []);
 
+  const updateUser = (newUser: Partial<User>) => {
+    setUser(prevUser => prevUser ? { ...prevUser, ...newUser } : null);
+  };
+
   if (isLoading) {
     return <DashboardLoading />;
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, logout, updateUser}}>
       {children}
     </AuthContext.Provider>
   );
