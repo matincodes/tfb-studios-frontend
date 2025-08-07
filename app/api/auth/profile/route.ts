@@ -10,9 +10,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  console.log('API URL:', apiUrl);
+  console.log('Access Token:', accessToken);
+
   try {
     // Use Axios to make the server-to-server request to your backend
-    const backendResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
+    const backendResponse = await axios.get(`${apiUrl}users/profile`, {
       headers: {
         // Manually forward the cookie
         'Cookie': `access_token=${accessToken}`,

@@ -269,7 +269,9 @@ export default function NewDesignPage() {
     const formData = new FormData();
     formData.append('name', designName);
     formData.append('description', designDescription);
-    formData.append('image', files[0].file);
+    files.forEach(file => {
+        formData.append('images', file.file);
+    });
     formData.append('initialFabricId', selectedMaterial);
     
     try {

@@ -31,6 +31,26 @@ import { useState, Suspense, useRef, useEffect } from "react"
 import { Canvas } from "@react-three/fiber"
 import { useGLTF, Environment, OrbitControls, Center, Html } from "@react-three/drei"
 import * as THREE from "three"
+import api from "@/lib/api"
+import { useParams } from 'next/navigation';
+import { Design, Comment, DesignStatus } from "@/types/design"
+
+const downloadImage = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+
+    // Optional: clean up
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
+};
 
 // Loading component for 3D models
 function LoadingSpinner() {
@@ -46,7 +66,7 @@ function LoadingSpinner() {
 
 // 3D Model Component with error handling
 function Model({ url }: { url: string }) {
-  const { scene, error } = useGLTF(url)
+  const { scene } = useGLTF(url)
   const modelRef = useRef<THREE.Group>(null)
 
   useEffect(() => {
@@ -67,16 +87,16 @@ function Model({ url }: { url: string }) {
     }
   }, [scene])
 
-  if (error) {
-    return (
-      <Html center>
-        <div className="text-red-400 text-center">
-          <Package className="h-8 w-8 mx-auto mb-2" />
-          <p className="text-sm">Failed to load 3D model</p>
-        </div>
-      </Html>
-    )
-  }
+  // if (error) {
+  //   return (
+  //     <Html center>
+  //       <div className="text-red-400 text-center">
+  //         <Package className="h-8 w-8 mx-auto mb-2" />
+  //         <p className="text-sm">Failed to load 3D model</p>
+  //       </div>
+  //     </Html>
+  //   )
+  // }
 
   if (!scene) {
     return <LoadingSpinner />
@@ -136,104 +156,78 @@ function Scene({ modelUrl }: { modelUrl: string }) {
   )
 }
 
-export default function DesignDetail({ params }: { params: { slug: string } }) {
-  const [newComment, setNewComment] = useState("")
-  const [selectedVersion, setSelectedVersion] = useState("v3")
+export default function DesignDetail() {
 
-  // Mock data - replace with actual data fetching
-  const design = {
-    name: "Fashion Collection",
-    status: "In Progress",
-    files: [
-      { name: "jacket-front.jpg", size: "2.4 MB", type: "image" },
-      { name: "jacket-back.jpg", size: "2.1 MB", type: "image" },
-      { name: "pattern.ai", size: "5.2 MB", type: "vector" },
-      { name: "measurements.pdf", size: "1.8 MB", type: "document" },
-    ],
-    material: {
-      name: "Organic Cotton Canvas",
-      type: "Canvas",
-      composition: "100% Organic Cotton",
-      color: "Navy Blue",
-      price: "£12.95 per metre",
-      supplier: "EcoFabrics Ltd",
-    },
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-20",
-  }
+  const [design, setDesign] = useState<Design | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [newComment, setNewComment] = useState("");
 
-  const comments = [
-    {
-      id: 1,
-      user: { name: "Sarah Johnson", avatar: "/placeholder.svg?height=32&width=32", role: "Designer" },
-      message: "Initial design looks great! The proportions are perfect for the target demographic.",
-      timestamp: "2 hours ago",
-    },
-    {
-      id: 2,
-      user: { name: "Mike Chen", avatar: "/placeholder.svg?height=32&width=32", role: "Production Manager" },
-      message: "We need to adjust the sleeve length by 2cm based on the latest measurements.",
-      timestamp: "1 day ago",
-    },
-    {
-      id: 3,
-      user: { name: "Emma Davis", avatar: "/placeholder.svg?height=32&width=32", role: "Quality Control" },
-      message: "Material selection approved. The organic cotton will work well with this design.",
-      timestamp: "2 days ago",
-    },
-  ]
+  const params = useParams();
+  const slug = params?.slug as string;
 
-  const versions = [
-    {
-      id: "v3",
-      name: "Jacket v3.0",
-      date: "2024-01-20",
-      status: "Current",
-      changes: "Updated sleeve measurements, adjusted collar design",
-      modelUrl: "/assets/3d/jacket.gltf",
-      type: "Jacket",
-    },
-    {
-      id: "v2",
-      name: "Pants v2.1",
-      date: "2024-01-18",
-      status: "Previous",
-      changes: "Material color adjustment, pocket positioning",
-      modelUrl: "/assets/3d/pants.glb",
-      type: "Pants",
-    },
-    {
-      id: "v1",
-      name: "Jacket v1.0",
-      date: "2024-01-15",
-      status: "Initial",
-      changes: "Initial design concept and base measurements",
-      modelUrl: "/assets/3d/jacket.gltf",
-      type: "Jacket",
-    },
-  ]
+  useEffect(() => {
+    async function fetchDesignDetails() {
+      try {
+        const { data } = await api.get(`/designs/${slug}`);
+      setDesign(data);
+      setComments(data.comments || []);
+      console.log("Design data:", data);
 
-  const handleCommentSubmit = () => {
-    if (newComment.trim()) {
-      // Add comment logic here
-      setNewComment("")
+      // Set default 3D version if available
+      const versions = data.renderedDesigns || [];
+      if (versions.length) {
+        setSelectedVersion(versions[0].id); // default to most recent
+      }
+    } catch (err) {
+      console.error("Failed to load design:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "approved":
-        return "bg-green-500"
-      case "in progress":
-        return "bg-yellow-500"
-      case "pending review":
-        return "bg-orange-500"
-      case "rejected":
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
+  fetchDesignDetails();
+}, [slug]);
+
+
+
+  const handleCommentSubmit = async () => {
+  if (!newComment.trim()) return;
+
+  try {
+    const response = await api.post("/comments", {
+      text: newComment,
+      designId: slug, // assuming this is a UUID
+    });
+
+    const postedComment = response.data;
+
+    setComments((prev) => [...prev, postedComment]);
+    setNewComment("");
+  } catch (err) {
+    console.error("Failed to post comment:", err);
   }
+};
+
+
+ const getStatusColor = (status: DesignStatus | undefined) => {
+  switch (status) {
+    case "UPLOADED":
+      return "bg-gray-500";
+    case "RENDERING":
+      return "bg-blue-500";
+    case "REVIEW_PENDING":
+      return "bg-orange-500";
+    case "REVIEW_COMPLETED":
+      return "bg-green-500";
+    case "RENDERED":
+      return "bg-purple-500";
+    default:
+      return "bg-gray-400";
+  }
+};
+
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -248,7 +242,17 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
     }
   }
 
-  const selectedVersionData = versions.find((v) => v.id === selectedVersion)
+  const selectedVersionData = design?.renderedDesigns?.find(v => v.id === selectedVersion);
+
+  console.log(selectedVersionData)
+  if (loading) {
+    return <div className="p-6 text-center text-gray-400">Loading design details...</div>;
+  }
+
+  const sortedVersions = design?.renderedDesigns?.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ) || [];
+
 
   return (
     <Layout>
@@ -259,11 +263,11 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
           </Button>
         </Link>
         <div>
-          <h1 className="font-medium">{design.name}</h1>
+          <h1 className="font-medium">{design?.name}</h1>
           <p className="text-xs text-gray-400">All Designs</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Badge className={`${getStatusColor(design.status)} text-white`}>{design.status}</Badge>
+          <Badge className={`${getStatusColor(design?.status)} text-white`}>{design?.status}</Badge>
           <Button variant="outline" size="sm">
             Order Physical sample
           </Button>
@@ -314,22 +318,22 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-400">Design Name</label>
-                    <p className="text-lg font-medium">{design.name}</p>
+                    <p className="text-lg font-medium">{design?.name}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-400">Status</label>
                     <div className="mt-1">
-                      <Badge className={`${getStatusColor(design.status)} text-white`}>{design.status}</Badge>
+                      <Badge className={`${getStatusColor(design?.status)} text-white`}>{design?.status}</Badge>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-400">Created</label>
-                      <p className="text-sm">{design.createdAt}</p>
+                      <p className="text-sm">{design?.createdAt}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-400">Last Updated</label>
-                      <p className="text-sm">{design.updatedAt}</p>
+                      <p className="text-sm">{design?.updatedAt}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -345,29 +349,37 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-700 rounded-md"></div>
+                    <div className="w-12 h-12 bg-gray-700 rounded-md">
+                      {design?.initialFabric?.imageUrl ? (
+                        <img src={design.initialFabric.imageUrl} alt={design.initialFabric.name} className="w-full h-full object-cover rounded-md" />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">No Image</div>
+                      )}
+                    </div>
                     <div>
-                      <p className="font-medium">{design.material.name}</p>
-                      <p className="text-sm text-gray-400">{design.material.type}</p>
+                      {/* Display Not Available if no fabric is selected */}
+                      <p className="font-medium">{design?.initialFabric?.name || "Not Available"}</p>
+                      <p className="text-sm text-gray-400">{design?.initialFabric?.type || "Not Available"}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
+                      {/* Display Not Available if no fabric is selected */}
                       <span className="text-sm text-gray-400">Composition</span>
-                      <span className="text-sm">{design.material.composition}</span>
+                      <span className="text-sm">{design?.initialFabric?.composition || "Not Available"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-400">Color</span>
-                      <span className="text-sm">{design.material.color}</span>
+                      <span className="text-sm">{design?.initialFabric?.color || "Not Available"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-400">Price</span>
-                      <span className="text-sm font-medium">{design.material.price}</span>
+                      <span className="text-sm font-medium">{design?.initialFabric?.price || "Not Available"}</span>
                     </div>
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                       <span className="text-sm text-gray-400">Supplier</span>
-                      <span className="text-sm">{design.material.supplier}</span>
-                    </div>
+                      <span className="text-sm">{design?.initialFabric?.supplier}</span>
+                    </div> */}
                   </div>
                 </CardContent>
               </Card>
@@ -378,12 +390,12 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Design Files ({design.files.length})
+                  Design Files ({design?.imageMetadata.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {design.files.map((file, index) => (
+                  {design?.imageMetadata.map((file, index) => (
                     <div
                       key={index}
                       className="flex items-center gap-3 p-3 border border-gray-700 rounded-lg hover:bg-gray-800/50 transition-colors"
@@ -391,9 +403,9 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                       <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-gray-400">{file.size}</p>
+                        <p className="text-xs text-gray-400">{file.size} MB</p>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => downloadImage(file.url, file.name)}>
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>
@@ -412,9 +424,9 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={comment.user.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={comment?.author?.profilePicture || "/placeholder.svg"} />
                           <AvatarFallback>
-                            {comment.user.name
+                            {comment?.author?.name
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
@@ -422,13 +434,13 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">{comment.user.name}</span>
+                            <span className="font-medium text-sm">{comment?.author?.name}</span>
                             <Badge variant="outline" className="text-xs">
-                              {comment.user.role}
+                              {comment?.author?.role}
                             </Badge>
-                            <span className="text-xs text-gray-400">{comment.timestamp}</span>
+                            <span className="text-xs text-gray-400">{comment?.text}</span>
                           </div>
-                          <p className="text-sm text-gray-300">{comment.message}</p>
+                          <p className="text-sm text-gray-300">{comment?.text}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -462,13 +474,13 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
             </div>
           </TabsContent>
 
-          <TabsContent value="3d" className="flex-1 p-0 m-0">
+          <TabsContent value="3d" className="flex-1 p-0 m-0 h-full">
             <div className="flex h-full">
               {/* Version Sidebar */}
-              <div className="w-80 border-r border-gray-800 p-4 space-y-4">
+              <div className="w-80 border-r border-gray-800 p-4 space-y-4 h-full">
                 <h3 className="font-medium text-lg">3D Versions</h3>
                 <div className="space-y-2">
-                  {versions.map((version) => (
+                  {sortedVersions.map((version) => (
                     <Card
                       key={version.id}
                       className={`cursor-pointer transition-colors ${
@@ -479,18 +491,18 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium">{version.name}</span>
-                          <Badge variant={version.status === "Current" ? "default" : "outline"}>{version.status}</Badge>
+                          <Badge /*variant={version.status === "Current" ? "default" : "outline"}*/>{version.status}</Badge>
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm text-gray-400">
                             <Clock className="h-3 w-3" />
-                            {version.date}
+                            {version.createdAt}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-blue-400">
                             <Package className="h-3 w-3" />
                             {version.type}
                           </div>
-                          <p className="text-xs text-gray-500">{version.changes}</p>
+                          <p className="text-xs text-gray-500">{version.notes}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -501,13 +513,13 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
               {/* 3D Viewer */}
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 relative">
-                  {selectedVersionData && <Scene key={selectedVersion} modelUrl={selectedVersionData.modelUrl} />}
+                  {selectedVersionData ? <Scene key={selectedVersion} modelUrl={selectedVersionData.imageUrl || "/assets/3d/jacket.gltf"}/> : <Scene key={selectedVersion} modelUrl={"/assets/3d/jacket.gltf"}/>}
 
                   {/* Loading Overlay */}
                   <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4" />
-                      <span>Viewing {selectedVersionData?.name}</span>
+                      <span>Viewing {selectedVersionData?.name || "Empty 3D"}</span>
                     </div>
                   </div>
 
@@ -553,14 +565,14 @@ export default function DesignDetail({ params }: { params: { slug: string } }) {
                 </div>
               </div>
             </div>
+
+             <div className="border-t border-gray-800 p-4 flex items-center justify-center">
+              <Button variant="default" size="lg">
+                Approve 3D design
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
-      </div>
-
-      <div className="border-t border-gray-800 p-4 flex items-center justify-center">
-        <Button variant="default" size="lg">
-          Approve 3D design
-        </Button>
       </div>
     </Layout>
   )

@@ -14,7 +14,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Upload, Heart, Eye, Plus, Leaf, Clock, CheckCircle, XCircle, AlertCircle, FileUp } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import api from "@/lib/api"; 
+import { useAuth } from "@/lib/auth-provider";
+import MaterialsLoading from "./loading";
+import { toast } from "@/hooks/use-toast"
+import { Fabric } from "@/types/design"
+import MaterialDetailModal from "./materialDetailsModal";
+
 
 export default function MaterialsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -24,88 +31,132 @@ export default function MaterialsPage() {
   const [composition, setComposition] = useState("")
   const [description, setDescription] = useState("")
   const [materialFile, setMaterialFile] = useState<File | null>(null)
+  const [userMaterials, setUserMaterials] = useState<Fabric[]>([]);
+  const [adminMaterials, setAdminMaterials] = useState<Fabric[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Mock data for user materials
-  const userMaterials = [
-    {
-      id: 1,
-      name: "Custom Cotton Blend",
-      type: "Cotton",
-      composition: "70% Cotton, 30% Polyester",
-      uploadDate: "2024-01-15",
-      status: "approved",
-      usedInDesigns: 3,
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 2,
-      name: "Vintage Denim",
-      type: "Denim",
-      composition: "100% Cotton",
-      uploadDate: "2024-01-10",
-      status: "pending",
-      usedInDesigns: 0,
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 3,
-      name: "Silk Blend",
-      type: "Silk",
-      composition: "60% Silk, 40% Cotton",
-      uploadDate: "2024-01-05",
-      status: "rejected",
-      usedInDesigns: 0,
-      image: "/placeholder.svg?height=200&width=200",
-    },
-  ]
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<Fabric | null>(null);
 
-  // Mock data for admin materials
-  const adminMaterials = [
-    {
-      id: 1,
-      name: "Organic Cotton",
-      type: "Cotton",
-      composition: "100% Organic Cotton",
-      pricePerMeter: 25,
-      sustainability: "A+",
-      inStock: true,
-      description: "Premium organic cotton sourced from certified farms",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 2,
-      name: "Recycled Polyester",
-      type: "Polyester",
-      composition: "100% Recycled Polyester",
-      pricePerMeter: 18,
-      sustainability: "A",
-      inStock: true,
-      description: "Made from recycled plastic bottles",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 3,
-      name: "Hemp Canvas",
-      type: "Hemp",
-      composition: "100% Hemp",
-      pricePerMeter: 32,
-      sustainability: "A+",
-      inStock: false,
-      description: "Durable hemp canvas for structured garments",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-    {
-      id: 4,
-      name: "Bamboo Jersey",
-      type: "Bamboo",
-      composition: "95% Bamboo, 5% Spandex",
-      pricePerMeter: 22,
-      sustainability: "A",
-      inStock: true,
-      description: "Soft and breathable bamboo jersey",
-      image: "/placeholder.svg?height=200&width=200",
-    },
-  ]
+
+
+  const { user } = useAuth();
+
+
+    const fetchFabrics = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+
+        const [userRes, platformRes] = await Promise.all([
+          api.get(`/fabrics`, {
+            params: {
+              source: "USER_UPLOAD",
+              userId: user?.id,
+            },
+          }),
+          api.get(`/fabrics`, {
+            params: {
+              source: "PLATFORM",
+            },
+          }),
+        ]);
+
+        setUserMaterials(userRes.data.fabrics);
+        console.log(userRes.data)
+        setAdminMaterials(platformRes.data.fabrics);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load materials");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+
+    useEffect(() => {
+      if (user) {
+        fetchFabrics();
+      }
+    }, [user]);
+
+
+  const handleUploadMaterial = async () => {
+    if (!materialName || !materialType || !composition) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Unauthorized",
+        description: "You must be logged in to upload a material.",
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("name", materialName);
+      formData.append("type", materialType);
+      formData.append("color", "default"); // You can update to real color picker if needed
+      formData.append("composition", composition);
+      formData.append("source", "USER_UPLOAD");
+
+      if (materialFile) {
+        formData.append("image", materialFile); // 'image' is the key your multer expects
+      }
+
+      await api.post("/fabrics", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      await fetchFabrics(); // Call the same fetch logic again
+
+      // Reset form
+      setMaterialName("");
+      setMaterialType("");
+      setComposition("");
+      setDescription("");
+      setMaterialFile(null);
+      setIsUploadModalOpen(false);
+
+      toast({
+        title: "Upload Successful",
+        description: "Your material has been uploaded and is pending review.",
+      });
+    } catch (err) {
+      console.error("Upload failed", err);
+      toast({
+        title: "Upload Failed",
+        description: "An error occurred while uploading the material.",
+      });
+    }
+  };
+
+
+  const handleDeleteMaterial = async (materialId: string) => {
+    try {
+      await api.delete(`/fabrics/${materialId}`);
+      toast({
+        title: "Material Deleted",
+        description: "The material has been successfully deleted.",
+      });
+      await fetchFabrics();
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the material.",
+      });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -113,50 +164,24 @@ export default function MaterialsPage() {
     }
   }
 
-  const handleUploadMaterial = () => {
-    if (!materialName || !materialType || !composition) {
-      alert("Please fill in all required fields")
-      return
-    }
 
-    // Here you would typically upload to your backend
-    console.log("Uploading material:", {
-      name: materialName,
-      type: materialType,
-      composition,
-      description,
-      file: materialFile,
-    })
-
-    // Reset form
-    setMaterialName("")
-    setMaterialType("")
-    setComposition("")
-    setDescription("")
-    setMaterialFile(null)
-    setIsUploadModalOpen(false)
-
-    // Show success message
-    alert("Material uploaded successfully! It will be reviewed by our team.")
-  }
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: "PENDING_REVIEW" | "ACCEPTED" | "REJECTED" | undefined) => {
     switch (status) {
-      case "approved":
+      case "ACCEPTED":
         return (
           <Badge className="bg-green-900/30 text-green-400 border-green-700">
             <CheckCircle className="w-3 h-3 mr-1" />
             Approved
           </Badge>
         )
-      case "pending":
+      case "PENDING_REVIEW":
         return (
           <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-700">
             <Clock className="w-3 h-3 mr-1" />
             Pending
           </Badge>
         )
-      case "rejected":
+      case "REJECTED":
         return (
           <Badge className="bg-red-900/30 text-red-400 border-red-700">
             <XCircle className="w-3 h-3 mr-1" />
@@ -168,7 +193,7 @@ export default function MaterialsPage() {
     }
   }
 
-  const getSustainabilityBadge = (rating: string) => {
+  const getSustainabilityBadge = (rating: string | undefined) => {
     const color =
       rating === "A+"
         ? "bg-green-900/30 text-green-400 border-green-700"
@@ -181,6 +206,9 @@ export default function MaterialsPage() {
     )
   }
 
+  const acceptedUserFabrics = userMaterials.filter((m) => m.status === "ACCEPTED");
+  const combinedAvailableMaterials = [...adminMaterials, ...acceptedUserFabrics];
+
   const filteredUserMaterials = userMaterials.filter(
     (material) =>
       material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -192,6 +220,19 @@ export default function MaterialsPage() {
       material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       material.type.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  if (loading) {
+    return <MaterialsLoading />;
+  }
+
+    if (error) {
+    return (
+      <Layout>
+        <div className="p-6 text-red-400">{error}</div>
+      </Layout>
+    );
+  }
+
 
   return (
     <Layout>
@@ -326,7 +367,7 @@ export default function MaterialsPage() {
               My Materials ({filteredUserMaterials.length})
             </TabsTrigger>
             <TabsTrigger value="available-materials" className="data-[state=active]:bg-gray-800">
-              Available Materials ({filteredAdminMaterials.length})
+              Available Materials ({combinedAvailableMaterials.length})
             </TabsTrigger>
           </TabsList>
 
@@ -352,14 +393,14 @@ export default function MaterialsPage() {
                   <Card key={material.id} className="bg-gray-900 border-gray-800 overflow-hidden">
                     <div className="aspect-square relative">
                       <Image
-                        src={material.image || "/placeholder.svg"}
+                        src={material.imageUrl || "/placeholder.svg"}
                         alt={material.name}
                         fill
                         className="object-cover"
                       />
                     </div>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between mb-1">
                         <h3 className="font-medium truncate">{material.name}</h3>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <Heart className="w-4 h-4" />
@@ -370,18 +411,34 @@ export default function MaterialsPage() {
 
                       <div className="flex items-center justify-between mb-3">
                         {getStatusBadge(material.status)}
-                        <span className="text-xs text-gray-400">Used in {material.usedInDesigns} designs</span>
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 h-8">
+                      <div className="flex gap-2 items-center justify-center">
+                       <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9"
+                          onClick={() => {
+                            setSelectedMaterial(material);
+                            setIsDetailModalOpen(true);
+                          }}
+                        >
                           <Eye className="w-3 h-3 mr-1" />
-                          View
+                             View
+                        </Button> 
+
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1 h-8"
+                          onClick={() => handleDeleteMaterial(material.id)}
+                        >
+                          Delete
                         </Button>
                       </div>
 
                       <p className="text-xs text-gray-500 mt-2">
-                        Uploaded {new Date(material.uploadDate).toLocaleDateString()}
+                        Uploaded {new Date(material.createdAt).toLocaleDateString()}
                       </p>
                     </CardContent>
                   </Card>
@@ -393,11 +450,11 @@ export default function MaterialsPage() {
           {/* Available Materials Tab */}
           <TabsContent value="available-materials">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredAdminMaterials.map((material) => (
+              {combinedAvailableMaterials.map((material) => (
                 <Card key={material.id} className="bg-gray-900 border-gray-800 overflow-hidden">
                   <div className="aspect-square relative">
                     <Image
-                      src={material.image || "/placeholder.svg"}
+                      src={material.imageUrl || "/placeholder.svg"}
                       alt={material.name}
                       fill
                       className="object-cover"
@@ -423,7 +480,7 @@ export default function MaterialsPage() {
 
                     <div className="flex items-center justify-between mb-3">
                       {getSustainabilityBadge(material.sustainability)}
-                      <span className="text-sm font-medium">£{material.pricePerMeter}/m</span>
+                      <span className="text-sm font-medium">£{material.price}/m</span>
                     </div>
 
                     <p className="text-xs text-gray-400 mb-3 line-clamp-2">{material.description}</p>
@@ -435,7 +492,7 @@ export default function MaterialsPage() {
                       <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                         <Eye className="w-3 h-3" />
                       </Button>
-                    </div>
+                    </div>     
                   </CardContent>
                 </Card>
               ))}
@@ -443,6 +500,12 @@ export default function MaterialsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <MaterialDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        material={selectedMaterial}
+        refreshData={fetchFabrics}
+      />
     </Layout>
   )
 }

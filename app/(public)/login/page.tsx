@@ -48,19 +48,22 @@ export default function LoginPage() {
 
     try {
         // Use our Axios instance to call the login endpoint
-        await api.post('/auth/login', {
+        const {data} = await api.post('/auth/login', {
             email: formData.email,
             password: formData.password
         });
 
-        // On success, the backend sets the HttpOnly cookie.
-        // A full page reload is the most reliable way to trigger
-        // our AuthProvider to see the new cookie and update the user's state.
-        window.location.href = '/dashboard';
+
+        if (data.success){
+          console.log("Successful", data)
+          window.location.href = '/dashboard';
+        }
+        
 
     } catch (err: any) {
         // Display error from backend, e.g., "Invalid credentials" or "Please verify your email"
         setError(err.response?.data?.message || 'An unknown error occurred.');
+        console.error("Login error:", err);
     } finally {
         setIsLoading(false)
     }

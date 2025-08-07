@@ -80,13 +80,13 @@ export function Layout({ children }: LayoutProps) {
       icon: Package,
       current: pathname === "/orders",
     },
-    {
-      name: "Messages",
-      href: "/messages",
-      icon: MessageSquare,
-      current: pathname === "/messages",
-      badge: "3",
-    },
+    // {
+    //   name: "Messages",
+    //   href: "/messages",
+    //   icon: MessageSquare,
+    //   current: pathname === "/messages",
+    //   badge: "3",
+    // },
     {
       name: "Settings",
       href: "/settings",
@@ -107,11 +107,12 @@ export function Layout({ children }: LayoutProps) {
         <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
           {/* Logo */}
           <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-1">
+              {/* <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">FashionForge</span>
+              </div> */}
+              <img src="assets/tfb-transparent.png" alt="" className="w-16 h-16"/>
+              <span className="text-xl font-bold">TFB Studios</span>
             </div>
           </div>
 
@@ -141,7 +142,7 @@ export function Layout({ children }: LayoutProps) {
                         >
                           <item.icon className="w-5 h-5 mr-3" />
                           <span>{item.name}</span>
-                          {item.badge && <Badge className="ml-auto bg-blue-600 text-white">{item.badge}</Badge>}
+                          {/* {item.badge && <Badge className="ml-auto bg-blue-600 text-white">{item.badge}</Badge>} */}
                         </Button>
                       </Link>
                   </TooltipTrigger>

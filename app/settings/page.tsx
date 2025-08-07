@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, ChangeEvent } from "react"
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,52 +13,137 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Camera, Check, Edit, Lock, Bell, Globe, Shield, Mail, Phone } from "lucide-react"
+import { Camera, Check, Edit, Lock, Bell, Globe, Shield, Mail, Phone, Loader2, Upload } from "lucide-react"
+import api from "@/lib/api"
+import { useAuth } from "@/lib/auth-provider"
+import { useToast } from "@/hooks/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Define a type for our profile data state
+type ProfileData = {
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  location: string;
+  bio: string;
+  profilePictureUrl?: string; // To hold the existing image URL
+  notifications: { email: boolean; push: boolean; sms: boolean; newsletter: boolean };
+  privacy: { profileVisibility: string; showEmail: boolean; showPhone: boolean };
+}
 
 export default function SettingsPage() {
+  const { user, isLoading: isAuthLoading, updateUser } = useAuth()
+  const { toast } = useToast()
+  
   const [isEditing, setIsEditing] = useState(false)
-  const [profileData, setProfileData] = useState({
-    name: "Matthew Smith",
-    role: "Design Manager",
-    email: "matthew@tfbstudios.com",
-    phone: "+1 (555) 123-4567",
-    location: "New York, USA",
-    bio: "Fashion designer with over 10 years of experience in sustainable fashion. Passionate about creating eco-friendly designs that don't compromise on style or quality.",
-    notifications: {
-      email: true,
-      push: true,
-      sms: false,
-      newsletter: true,
-    },
-    privacy: {
-      profileVisibility: "public",
-      showEmail: false,
-      showPhone: false,
-    },
-  })
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setProfileData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
+ // State for the form data, initialized with empty/default values
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  // State for the new image file to be uploaded
+  const [newProfilePictureFile, setNewProfilePictureFile] = useState<File | null>(null);
+  // State for the temporary preview of the new image
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // When the user data from useAuth loads, populate our form state
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        role: user.role || "USER",
+        email: user.email || "",
+        // Use defaults for new fields if they don't exist on the user object yet
+        phone: "",
+        location: "",
+        bio: "",
+        profilePictureUrl: undefined,
+        notifications: { email: true, push: true, sms: false, newsletter: true },
+        privacy: { profileVisibility: "public", showEmail: false, showPhone: false },
+      });
+        setImagePreview("/placeholder-user.jpg"); // Default placeholder image
+    }
+  }, [user]);
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setProfileData(prev => prev ? { ...prev, [name]: value } : null);
+  };
+
+
+   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setNewProfilePictureFile(file);
+        setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSwitchChange = (category: "notifications" | "privacy", name: string, checked: boolean) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [name]: checked,
-      },
-    }))
-  }
+    setProfileData(prev => {
+        if (!prev) return null;
+        return {
+            ...prev,
+            [category]: {
+                ...prev[category],
+                [name]: checked,
+            },
+        };
+    });
+  };
 
-  const handleSave = () => {
-    // Here you would typically send the updated profile data to your API
-    console.log("Saving profile data:", profileData)
-    setIsEditing(false)
+ const handleSave = async () => {
+    if (!profileData || !user) return;
+
+    setIsSubmitting(true);
+    
+    const formData = new FormData();
+    formData.append('name', profileData.name);
+    formData.append('email', profileData.email);
+    formData.append('phone', profileData.phone);
+    formData.append('location', profileData.location);
+    formData.append('bio', profileData.bio);
+    // We must stringify JSON objects when sending them in FormData
+    formData.append('notifications', JSON.stringify(profileData.notifications));
+    formData.append('privacy', JSON.stringify(profileData.privacy));
+
+    if (newProfilePictureFile) {
+        formData.append('profilePicture', newProfilePictureFile);
+    }
+
+    try {
+        const response = await api.put(`/users/${user.id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const updateUser = response.data.user;
+
+        toast({ title: "Success!", description: "Your profile has been updated." });
+        setIsEditing(false);
+        // Reload to get the latest user data in the AuthProvider
+        window.location.reload(); 
+    } catch (error: any) {
+        toast({
+            title: "Update Failed",
+            description: error.response?.data?.message || "An error occurred.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  // Show a loading skeleton while the user data is being fetched
+  if (isAuthLoading || !profileData) {
+      return (
+          <Layout>
+            <div className="p-6 max-w-6xl mx-auto space-y-6">
+                <Skeleton className="h-12 w-1/3" />
+                <Skeleton className="h-10 w-1/4" />
+                <Card><CardContent className="p-6"><Skeleton className="h-48 w-full" /></CardContent></Card>
+            </div>
+          </Layout>
+      );
   }
 
   return (
@@ -71,12 +156,12 @@ export default function SettingsPage() {
           </div>
           {isEditing ? (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
               <Button onClick={handleSave}>
-                <Check className="mr-2 h-4 w-4" />
-                Save Changes
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           ) : (
@@ -105,13 +190,18 @@ export default function SettingsPage() {
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex flex-col items-center gap-4">
                     <Avatar className="h-32 w-32">
-                      <AvatarImage src="/placeholder-user.jpg" />
-                      <AvatarFallback className="text-2xl">MS</AvatarFallback>
+                      <AvatarImage src={imagePreview || "/placeholder-user.jpg"} />
+                      <AvatarFallback className="text-2xl">
+                        {profileData.name ? profileData.name.charAt(0).toUpperCase() : 'UU'}
+                      </AvatarFallback>
                     </Avatar>
                     {isEditing && (
-                      <Button variant="outline" size="sm">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Change Photo
+                       <Button variant="outline" size="sm" asChild>
+                        <Label htmlFor="photo-upload" className="cursor-pointer">
+                            <Camera className="mr-2 h-4 w-4" />
+                              Change Photo
+                            <Input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </Label>
                       </Button>
                     )}
                     <div className="text-center">
@@ -194,35 +284,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio</CardTitle>
-                <CardDescription>Showcase your best work and achievements</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="aspect-square bg-gray-800 rounded-lg flex items-center justify-center">
-                      {isEditing ? (
-                        <Button variant="ghost">
-                          <Camera className="h-8 w-8 text-gray-400" />
-                        </Button>
-                      ) : (
-                        <span className="text-gray-500">Portfolio Item {item}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-              {isEditing && (
-                <CardFooter>
-                  <Button variant="outline" size="sm">
-                    Add Portfolio Item
-                  </Button>
-                </CardFooter>
-              )}
             </Card>
           </TabsContent>
 
@@ -360,65 +421,6 @@ export default function SettingsPage() {
                 <CardDescription>Control your privacy and data sharing preferences</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Globe className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="font-medium">Profile Visibility</div>
-                        <div className="text-sm text-gray-400">Control who can see your profile information</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        className="bg-gray-900 border border-gray-700 rounded-md px-3 py-1 text-sm"
-                        disabled={!isEditing}
-                        value={profileData.privacy.profileVisibility}
-                        onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
-                            privacy: { ...prev.privacy, profileVisibility: e.target.value },
-                          }))
-                        }
-                      >
-                        <option value="public">Public</option>
-                        <option value="contacts">Contacts Only</option>
-                        <option value="private">Private</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="font-medium">Show Email Address</div>
-                        <div className="text-sm text-gray-400">Display your email on your public profile</div>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={profileData.privacy.showEmail}
-                      onCheckedChange={(checked) => handleSwitchChange("privacy", "showEmail", checked)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Phone className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="font-medium">Show Phone Number</div>
-                        <div className="text-sm text-gray-400">Display your phone number on your public profile</div>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={profileData.privacy.showPhone}
-                      onCheckedChange={(checked) => handleSwitchChange("privacy", "showPhone", checked)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                </div>
-
                 <div className="pt-4 border-t border-gray-800">
                   <h3 className="font-medium mb-4">Data Management</h3>
                   <div className="space-y-4">

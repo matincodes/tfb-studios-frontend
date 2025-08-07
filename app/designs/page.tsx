@@ -9,85 +9,7 @@ import Image from "next/image"
 import { useState, useEffect } from "react"
 import api from "@/lib/api" // Our Axios instance
 import { Skeleton } from "@/components/ui/skeleton" // For loading states
-
-// Sample design data
-// const designs = [
-//   {
-//     id: "funky-jacket",
-//     name: "Funky Jacket",
-//     status: "approved",
-//     date: "Jul 22, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Sarah Johnson",
-//   },
-//   {
-//     id: "summer-dress",
-//     name: "Summer Dress",
-//     status: "in-progress",
-//     date: "Jul 20, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Michael Chen",
-//   },
-//   {
-//     id: "winter-coat",
-//     name: "Winter Coat",
-//     status: "pending",
-//     date: "Jul 18, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Emma Wilson",
-//   },
-//   {
-//     id: "casual-pants",
-//     name: "Casual Pants",
-//     status: "approved",
-//     date: "Jul 15, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "David Kim",
-//   },
-//   {
-//     id: "evening-gown",
-//     name: "Evening Gown",
-//     status: "in-progress",
-//     date: "Jul 12, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Olivia Martinez",
-//   },
-//   {
-//     id: "sports-jersey",
-//     name: "Sports Jersey",
-//     status: "pending",
-//     date: "Jul 10, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "James Taylor",
-//   },
-//   {
-//     id: "denim-jeans",
-//     name: "Denim Jeans",
-//     status: "approved",
-//     date: "Jul 8, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Sophia Brown",
-//   },
-//   {
-//     id: "silk-blouse",
-//     name: "Silk Blouse",
-//     status: "in-progress",
-//     date: "Jul 5, 2024",
-//     thumbnail: "/placeholder.svg?height=300&width=300",
-//     designer: "Daniel Lee",
-//   },
-// ]
-
-interface Design {
-  id: string;
-  name: string;
-  status: 'UPLOADED' | 'RENDERING' | 'REVIEW_PENDING' | 'REVIEW_COMPLETED' | 'RENDERED'; // Match backend statuses
-  createdAt: string; // The backend sends a string date
-  imageUrl: string;
-  createdBy: { // The backend includes the user who created it
-    name: string;
-  }
-}
+import { Design, DesignStatus } from "@/types/design"
 
 export default function DesignsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -139,18 +61,22 @@ export default function DesignsPage() {
     }
   }
 
-  const getStatusClass = (status: string) => {
+   const getStatusColor = (status: DesignStatus | undefined) => {
     switch (status) {
-      case "REVIEW_COMPLETED":
-        return "bg-green-500/20 text-green-400"
-      case "REVIEW_PENDING":
-        return "bg-blue-500/20 text-blue-400"
       case "UPLOADED":
-        return "bg-yellow-500/20 text-yellow-400"
+        return "bg-gray-500";
+      case "RENDERING":
+        return "bg-blue-500";
+      case "REVIEW_PENDING":
+        return "bg-orange-500";
+      case "REVIEW_COMPLETED":
+        return "bg-green-500";
+      case "RENDERED":
+        return "bg-purple-500";
       default:
-        return "bg-gray-500/20 text-gray-400"
+        return "bg-gray-400";
     }
-  }
+  };
 
 
     // Helper function to format the date
@@ -210,13 +136,13 @@ export default function DesignsPage() {
                     <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden hover:border-gray-600 transition-colors cursor-pointer">
                     <div className="aspect-square relative">
                         <Image
-                            src={design.imageUrl || "/placeholder.svg"}
+                            src={design.imageMetadata[0].url || "/placeholder.svg"}
                             alt={design.name}
                             fill
                             className="object-cover"
                         />
                         <div className="absolute bottom-3 left-3">
-                            <div className={`rounded-full px-3 py-1 text-xs flex items-center gap-1 ${getStatusClass(design.status)}`}>
+                            <div className={`rounded-full px-3 py-1 text-xs flex items-center gap-1 ${getStatusColor(design.status)}`}>
                                 {getStatusIcon(design.status)}
                                 <span>{getStatusText(design.status)}</span>
                             </div>
@@ -249,7 +175,7 @@ export default function DesignsPage() {
                         <Link href={`/designs/${design.id}`} className="flex items-center gap-3 hover:underline">
                             <div className="h-10 w-10 rounded overflow-hidden flex-shrink-0">
                                 <Image
-                                    src={design.imageUrl || "/placeholder.svg"}
+                                    src={design.imageMetadata[0].url || "/placeholder.svg"}
                                     alt={design.name}
                                     width={40}
                                     height={40}
@@ -261,7 +187,7 @@ export default function DesignsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-300">{design.createdBy.name}</td>
                     <td className="px-4 py-3">
-                        <div className={`rounded-full px-3 py-1 text-xs inline-flex items-center gap-1 ${getStatusClass(design.status)}`}>
+                        <div className={`rounded-full px-3 py-1 text-xs inline-flex items-center gap-1 ${getStatusColor(design.status)}`}>
                             {getStatusIcon(design.status)}
                             <span>{getStatusText(design.status)}</span>
                         </div>
