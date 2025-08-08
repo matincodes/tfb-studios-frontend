@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios'; 
 import DashboardLoading from '@/app/dashboard/loading';
+import { fetchUserProfile } from '@/server/auth';
 
 // Define the shape of the user object and the context
 interface User {
@@ -43,26 +44,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const loadUser = async () => {
       try {
         // Use standard axios to call the Next.js API Proxy Route
         // This ensures the browser automatically sends the HttpOnly cookie.
-        const response = await axios.get('/api/auth/profile');
+        // const response = await axios.get('/api/auth/profile');
 
-        if (response.status !== 200) {
-          throw new Error('Not authenticated');
-        }
+        // console.log(response)
+        // if (response.status !== 200) {
+        //   throw new Error('Not authenticated');
+        // }
+        const userData = await fetchUserProfile();
 
-
-        setUser(response.data.user);
+        setUser(userData);
       } catch (error) {
+        console.log("Err: ",error)
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserProfile();
+    loadUser();
   }, []);
 
   const updateUser = (newUser: Partial<User>) => {
