@@ -3,6 +3,9 @@ import { cookies } from 'next/headers';
 import axios from 'axios';
 
 export async function GET(req: NextRequest) {
+  const host = req.headers.get('host');
+  const origin = req.headers.get('origin');
+
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
@@ -11,6 +14,10 @@ export async function GET(req: NextRequest) {
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+   if (!apiUrl) {
+    return NextResponse.json({ message: 'API URL not configured' }, { status: 500 });
+  }
+  
   console.log('API URL:', apiUrl);
   console.log('Access Token:', accessToken);
 
@@ -20,6 +27,8 @@ export async function GET(req: NextRequest) {
       headers: {
         // Manually forward the cookie
         'Cookie': `access_token=${accessToken}`,
+        'Host': new URL(apiUrl).host,
+        'Origin': origin || `https://${host}`,
       },
     });
 
